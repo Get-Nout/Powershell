@@ -1,4 +1,4 @@
-﻿
+#Requires:
 . '.\New-WPFMessageBox.ps1'
 
 Add-Type -AssemblyName presentationframework, presentationcore
