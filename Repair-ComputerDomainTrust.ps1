@@ -1,8 +1,11 @@
-﻿#Declaration
-$DomainName = "alelek.local"
-$LocalDC ="SRVALE101"
+<#Info
+    Repairs the trust between two computer objects
+#>
+#Declaration
+$DomainName = "nout.local"
+$LocalDC ="SRVNOUT101"
 $RepairAccountName = "TempAdmin"
-$RepairAccountPWD = "Jos-Test56126#"
+$RepairAccountPWD = "SüperSecure123"
 
 #Create the computer object
 $Computer = New-Object -TypeName PSCustomObject -ArgumentList @{Name = $env:COMPUTERNAME}
