@@ -6,6 +6,7 @@
     1.1 Changed inefficient code
     1.2 Added Write-Progress
 #>
+#Requires Get-Loggedonuser.ps1
 
 #Obtaining the full Serverlist from AD
     Write-Host "Obtaining the full Serverlist from AD"
@@ -22,7 +23,7 @@ $Servers = Get-ADComputer -filter * -Properties OperatingSystem, CanonicalName, 
     $Reachable = @(); $UnReachable = @();$AdminList =@()
 
 #Getting external commands
-    . \\ithost.local\ithost$\techdata\Scripts\Commandlets\Get-LoggedOnUser.ps1
+   .\Get-loggedonuser.ps1
      
 #Looping it all
 foreach($Server in $Servers){
