@@ -1,4 +1,4 @@
-﻿#Rebootscript for Calvet
+﻿#Rebootscript
 #V1.0
 
 #Declaration
