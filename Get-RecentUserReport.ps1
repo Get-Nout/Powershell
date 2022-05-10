@@ -1,8 +1,9 @@
-﻿$ADGroup = "Users-Pronatura-CXA"
+﻿$ADGroup = "Users-nout-CXA"
 $LatestLogonMonths = 3 #months
 $ExportLocation = "c:\temp\"
-$CustomerName = "Pronatura"
-#Get the users
+$CustomerName = "nout"
+
+#Get the users
 $Users = Get-ADGroupMember $ADGroup -Recursive | Select-Object SamAccountName -ExpandProperty SamAccountName
 
 #Get today, x months ago
