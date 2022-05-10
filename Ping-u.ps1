@@ -1,8 +1,12 @@
-﻿
+<#Info
+    Displays the most nootest of companions to tell you a message
+#>
+#Created by Noot Geens
+#Usage ping-u "message"
 
 function ping-u(){
 param(
-    [String]$Text = "Noot Noot!"
+    [String]$Text = "It's time to noot!"
 )
 #First Line
     $i = 0
