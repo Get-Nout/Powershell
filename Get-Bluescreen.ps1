@@ -1,5 +1,5 @@
 ﻿
-. '\\ithost.local\ithost$\techdata\Scripts\Commandlets\New-WPFMessageBox.ps1'
+. '.\New-WPFMessageBox.ps1'
 
 Add-Type -AssemblyName presentationframework, presentationcore
 
