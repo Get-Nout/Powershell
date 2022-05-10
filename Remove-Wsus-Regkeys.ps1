@@ -1,4 +1,6 @@
-﻿Clear
+#Clears the registrykeys that got forced by a gpo
+
+Clear
 
 $Check = ""
 
