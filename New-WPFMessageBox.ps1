@@ -1,6 +1,6 @@
 ﻿Function New-WPFMessageBox {
-
-    # For examples for use, see my blog:
+    # Created by Mark, what a legend.
+    # For examples for use, see his blog:
     # https://smsagent.wordpress.com/2017/08/24/a-customisable-wpf-messagebox-for-powershell/
     
     # CHANGES
