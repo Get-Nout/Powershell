@@ -22,7 +22,7 @@ $Path =""
         "TS"              {$Path = "OU=Servers,"}
         "Mailbox"         {$Path = "OU=Users,"}
         "Disabled"        {$Path = "OU=Users,"}
-        "Leveranciers"    {$Path = "OU=Users,"}
+        "Suppliers"    {$Path = "OU=Users,"}
     }
         $Path =  $Path + $OU_DName
         New-ADOrganizationalUnit -Name $SubOU -Path $Path
