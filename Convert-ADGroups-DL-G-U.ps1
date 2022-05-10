@@ -10,7 +10,7 @@
     $Groups = Get-ADGroup -SearchBase $GroupLocation -Filter {name -like "nout-PRT-*"}
 
 #Loop it
-foreach($Groupt in $Groupstemp){
+foreach($Group in $Groups){
     Set-ADGroup $Groupt -GroupScope Universal
     Set-ADGroup $Groupt -GroupScope Global
     }
