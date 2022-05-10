@@ -12,4 +12,4 @@
 		@{Label="Propagation Flags";Expression={$_.PropagationFlags}} | ft -auto
 		}
 
-# Get-NTFSPermissions -Object "\\lambolabo.local\Redirection$\michael\Desktop\DWG*"
+#Example:  Get-NTFSPermissions -Object "\\Nout.local\Data$\Production\Stage1\DWG*"
