@@ -1,6 +1,9 @@
 # Create a vCard to import on mobile devices
 # V2.0
 # Creator: Nout
+<# Info
+    Creates vCards from AD Users    
+#>
 
 #Importing modules
     Import-Module ActiveDirectory
