@@ -1,6 +1,6 @@
 ﻿#Script to Backup rows, and delete it from the original table
 #Version: 1.7
-#Creator: Nout Geens & Karl Thijs (SQL Hero)
+#Creator: Nout Geens & Karl Thijs
 <#Changelog
     1.1: Added Variables instead of plain text code
     1.2: Updated Naming
@@ -13,13 +13,13 @@
 
 #Declaration
 $CurrentUser = "WMSuser"
-$SQLServer = "Server2.fabr.local" #use Server\Instance for named SQL instances!
-$SQLDBName = "Fabrelac_WMS"
+$SQLServer = "Server2.nout.local" #use Server\Instance for named SQL instances!
+$SQLDBName = "production"
 $SQLTable = "Pallets"
 $SQLTableBackup = "palletsbackup"
 
 #Get the Password
-Write-host "Gebruikersnaam:"$CurrentUser
+Write-host "username:"$CurrentUser
 $Password = Read-Host "Password" -AsSecureString
 
 #Connect to the SQL
