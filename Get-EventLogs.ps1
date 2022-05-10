@@ -3,7 +3,7 @@
 #Creator:Nout
 
 #Declaration
-$Servers = "SRVBRO001"
+$Servers = "SRVNOUT001"
 $Logname = "DFS*"
 #Yesterdaaaaayy
 $Yesterday = (get-date).AddDays(-1).ToString("yyy/MM/dd")
