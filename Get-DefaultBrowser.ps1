@@ -1,5 +1,5 @@
 ﻿#Declaration
-$Username = "ward"
+$Username = "nout"
 $ComputerName = "localhost"
 
 #Imports
@@ -19,14 +19,16 @@ $Regkeys = (
 #Create and fill the object
 $DefaultBrowser = New-Object -TypeName PSObject
 
-    $DefaultBrowser | Add-Member -NotePropertyName "HTM Files" -NotePropertyValue (`        Invoke-Command -ComputerName $ComputerName -ScriptBlock {`
+    $DefaultBrowser | Add-Member -NotePropertyName "HTM Files" -NotePropertyValue (`
+        Invoke-Command -ComputerName $ComputerName -ScriptBlock {`
             Get-ItemProperty -Path $Using:Regkeys[0] | Select-Object ProgId -ExpandProperty ProgId}) #HTM
 
     $DefaultBrowser | Add-Member -NotePropertyName "HTML Files" -NotePropertyValue (`
         Invoke-Command -ComputerName $ComputerName -ScriptBlock {`
             Get-ItemProperty -Path $Using:Regkeys[1] | Select-Object ProgId -ExpandProperty ProgId}) #HTML
 
-    $DefaultBrowser | Add-Member -NotePropertyName "Https Links" -NotePropertyValue (`        Invoke-Command -ComputerName $ComputerName -ScriptBlock {`
+    $DefaultBrowser | Add-Member -NotePropertyName "Https Links" -NotePropertyValue (`
+        Invoke-Command -ComputerName $ComputerName -ScriptBlock {`
             Get-ItemProperty -Path $Using:Regkeys[2] | Select-Object ProgId -ExpandProperty ProgId}) #HTTPS
 
     $DefaultBrowser | Add-Member -NotePropertyName "Http Links" -NotePropertyValue (`
