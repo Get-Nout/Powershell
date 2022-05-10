@@ -1,8 +1,8 @@
 ﻿#Set wallpaper
 #declaration
-    $Server = "RDSITH003"
-    $Username = "geert"
-    $FilePath = 'C:\windows\oei.png'
+    $Server = "RDSNOUT003"
+    $Username = "Hank"
+    $FilePath = 'C:\windows\Wallpaper.png'
 
     $Testrun = $true #set to false to run it for real
 
@@ -11,7 +11,9 @@
     Start-Sleep -Seconds 1
 
     #Get all the user SIDs
-        $SIDs = Get-childitem 'Registry::HKEY_USERS\' `            | Where-Object {($_.Name -NotLike "*_Classes") -and ($_.Name -NotLike "*_Default") -and ($_.Name.Length -gt 20)} `            | Select-Object Name -ExpandProperty Name
+        $SIDs = Get-childitem 'Registry::HKEY_USERS\' `
+            | Where-Object {($_.Name -NotLike "*_Classes") -and ($_.Name -NotLike "*_Default") -and ($_.Name.Length -gt 20)} `
+            | Select-Object Name -ExpandProperty Name
 
         $Done = $false
 
