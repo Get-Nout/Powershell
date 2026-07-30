@@ -1,4 +1,5 @@
-﻿function Convert-CSV-To-Excel {
+﻿#Creator: Nout Geens
+function Convert-CSV-To-Excel {
 param (
         [String]$Csv, #Location of the source file
         [String]$Xlsx, #Desired location of output  

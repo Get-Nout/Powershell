@@ -1,4 +1,5 @@
 #Clears the registrykeys that got forced by a gpo
+#Creator: Nout Geens
 
 Clear
 

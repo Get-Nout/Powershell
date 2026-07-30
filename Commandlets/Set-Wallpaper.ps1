@@ -1,4 +1,5 @@
 ﻿#Set wallpaper
+#Creator: Nout Geens
 #declaration
     $Server = "RDS01"
     $Username = "jsmith"

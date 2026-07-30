@@ -1,4 +1,5 @@
-﻿$MaxFruit = 6
+﻿#Creator: Nout Geens
+$MaxFruit = 6
 $ID = Get-Random -Minimum 1 -Maximum $MaxFruit
 
 Add-Type -AssemblyName System.Speech 

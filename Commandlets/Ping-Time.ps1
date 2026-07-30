@@ -1,4 +1,5 @@
 ﻿Function Ping-Time {
+ #Creator: Nout Geens
  param( [String]$Destination, $Delay = 1
  while($true){
     $Date = get-date -Format HH:mm:ss

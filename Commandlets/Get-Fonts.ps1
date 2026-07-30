@@ -1,5 +1,5 @@
 ﻿#List installed Font Families
-#Don't remember where i got this
+#Creator: Nout Geens
 
 [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
 $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families 

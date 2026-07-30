@@ -1,6 +1,7 @@
 #Notes
     # Check the arp table for the inputted ip address
     # version: 1.0
+    #Creator: Nout Geens
 function Get-MacAddress{
     param(
         [String]$Address,

@@ -1,4 +1,5 @@
-﻿#Declaration
+﻿#Creator: Nout Geens
+#Declaration
 $TranscriptPath = "C:\Scripts\Logs\"
 $RegkeyPath = "HKCU:\Software\"
 $RegkeyName = "BootInfo"

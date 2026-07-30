@@ -1,3 +1,4 @@
+#Creator: Nout Geens
 #Requires:
 . '.\New-WPFMessageBox.ps1'
 

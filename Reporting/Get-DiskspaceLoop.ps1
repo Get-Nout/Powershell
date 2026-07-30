@@ -1,3 +1,4 @@
+#Creator: Nout Geens
 $Letter = (Read-Host "Provide the disk letter you want to monitor (like D)")+":"
 $Disk = Get-WmiObject Win32_LogicalDisk | Where-Object DeviceID -eq $Letter
 

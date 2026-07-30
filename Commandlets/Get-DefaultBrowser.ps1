@@ -1,4 +1,5 @@
-﻿#Declaration
+﻿#Creator: Nout Geens
+#Declaration
 $Username = "jsmith"
 $ComputerName = "localhost"
 

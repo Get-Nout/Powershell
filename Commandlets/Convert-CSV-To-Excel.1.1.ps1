@@ -1,4 +1,5 @@
 ﻿Function ConvertCSVTo-XSLS{
+#Creator: Nout Geens
 #Version: 1.1
 #Changes: 1.1 Now with error logs
 #Purpose: Convert one or multiple CSV files into one XSLX File

@@ -1,4 +1,4 @@
-﻿
+﻿#Creator: Nout Geens
 	$Folder = "Cert:\CurrentUser\My\"
 	$SubjectFilter = "SERIALNUMBER*"
 	$Exclusion = "*G=firstname, SN=lastname*"

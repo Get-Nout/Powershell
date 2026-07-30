@@ -1,4 +1,5 @@
-﻿$StartTime = "8:30:00"
+﻿#Creator: Nout Geens
+$StartTime = "8:30:00"
 $Endtime = "17:00:00"
 $Freedom = $false
 
