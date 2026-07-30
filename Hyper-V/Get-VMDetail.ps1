@@ -12,22 +12,25 @@ Function Get-VMDetail{
 
     #Create the Query and get the info
     $Query = "Select * From Msvm_ComputerSystem Where ElementName='$VMName'"
-    $VM = Get-CimInstance -namespace root\virtualization\v2 -query $Query -computername $ComputerName
+    $QVM = Get-CimInstance -Namespace root\virtualization\v2 -Query $Query -ComputerName $ComputerName
 
     #Get associated information
-    $vm_info = Get-CimAssociatedInstance -InputObject $vm
+    $vm_info = Get-CimAssociatedInstance -InputObject $QVM
 
     #Get the Details we need from that info
     $RawData = ($vm_info | Where-Object Name -Like "Key-Value Pair Exchange").GuestIntrinsicExchangeItems
+
+    #If it's empty quit
+    if($RawData -eq $null){ Write-host -ForegroundColor DarkYellow "   - VM Needs to be turned on to get further details"; break}
 
     #Convert the Content from Raw data into an PSObject
     $Content = $RawData.Replace("<PROPERTY","`n`t<PROPERTY")
     $Content = $Content.Replace("<INSTANCE","`n<INSTANCE")
     $ContentArray = $Content -split ("</Instance>")
-    $OutputObject = New-Object PSObject 
+    $OutputObject = New-Object PSObject
 
     #Convert each 'Instance' into a Property using its name and Data property
-    foreach($Instance in $ContentArray){
+    foreach($Instance in ($ContentArray -notlike $null)){
         $Properties = $Instance -Split("<PROPERTY NAME")
 
         $InstanceObject = New-Object PSObject
@@ -45,10 +48,11 @@ Function Get-VMDetail{
                         $PropertyValue = ""
                     }
                 }
-                $InstanceObject | Add-Member -NotePropertyName $PropertyName -NotePropertyValue $PropertyValue
-                
-            }   
-        }     
+                if(($PropertyValue -notlike "*deprecated*") -and ($PropertyValue -notlike "*afgeschaft*")){
+                    $InstanceObject | Add-Member -NotePropertyName $PropertyName -NotePropertyValue $PropertyValue
+                }
+            }
+        }
             if($InstanceObject.Name -ne $null -and $InstanceObject.Data -ne $null){
                 $OutputObject | Add-Member -NotePropertyName $InstanceObject.Name -NotePropertyValue $InstanceObject.Data
             }

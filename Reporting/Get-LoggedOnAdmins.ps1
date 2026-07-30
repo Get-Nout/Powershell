@@ -5,49 +5,53 @@
     1.0 Created
     1.1 Changed inefficient code
     1.2 Added Write-Progress
+    1.3 Added check line for Get-LoggedOnUsers
 #>
-#Requires Get-Loggedonuser.ps1
 
-#Obtaining the full Serverlist from AD
-    Write-Host "Obtaining the full Serverlist from AD"
-$Servers = Get-ADComputer -filter * -Properties OperatingSystem, CanonicalName, Enabled | `
-        Where-Object {(($_.OperatingSystem -Like "*2019*" -or $_.OperatingSystem -Like "*2016*" -or $_.OperatingSystem -Like "*2012*"-or $_.OperatingSystem -Like "*2008*" -or $_.OperatingSystem -Like "*2003*") `
-                    -and ($_.name -notlike "*clb*") `
-                    -and ($_.name -notlike "foc*") `
-                    -and ($_.Enabled -eq $true) `
-                    -and ($_.CanonicalName -notlike "*Cleanup*"))} | `
-        Select-Object * | `
-        Sort-Object Name
+#Check if the dependency is loaded
+    try{
+    Get-LoggedOnUsers
 
-#Cleaning up old values
-    $Reachable = @(); $UnReachable = @();$AdminList =@()
+    #Obtaining the full Serverlist from AD
+        Write-Host "Obtaining the full Serverlist from AD"
+    $Servers = Get-ADComputer -filter * -Properties OperatingSystem, CanonicalName, Enabled | `
+            Where-Object {(($_.OperatingSystem -Like "*2022*" -or $_.OperatingSystem -Like "*2019*" -or $_.OperatingSystem -Like "*2016*" -or $_.OperatingSystem -Like "*2012*"-or $_.OperatingSystem -Like "*2008*" -or $_.OperatingSystem -Like "*2003*") `
+                        -and ($_.name -notlike "*clb*") `
+                        -and ($_.name -notlike "foc*") `
+                        -and ($_.name -notlike "*VSHCL*") `
+                        -and ($_.Enabled -eq $true) `
+                        -and ($_.CanonicalName -notlike "*Cleanup*"))} | `
+            Select-Object * | `
+            Sort-Object Name
 
-#Getting external commands
-   .\Get-loggedonuser.ps1
-     
-#Looping it all
-foreach($Server in $Servers){
-    #Notify the admin
-    $Status = "Checking " +$Server.Name + ", " +$Servers.IndexOf($Server) +" out of "+ $Servers.Count
-    Write-Progress -Activity "Checking Servers" -Status $Status -ErrorAction SilentlyContinue -PercentComplete($Servers.IndexOf($Server) / $Servers.Count)
+    #Cleaning up old values
+        $Reachable = @(); $UnReachable = @();$AdminList =@()
 
-    #Check if the server can be reached
-        if(Test-Connection -Computername $Server.Name -Count 1 -ErrorAction SilentlyContinue){
-                #Get the users
-                $Admins = Get-LoggedOnUsers -ComputerName $Server.Name | Where-Object Username -Like "*admin*"
-                Write-host "Done Checking"$Server.Name "..."
-                $Reachable += $Server
+    #Looping it all
+    foreach($Server in $Servers){
+        #Notify the admin
+        $Status = "Checking " +$Server.Name + ", " +$Servers.IndexOf($Server) +" out of "+ $Servers.Count
+        Write-Progress -Activity "Checking Servers" -Status $Status -ErrorAction SilentlyContinue -PercentComplete($Servers.IndexOf($Server) / $Servers.Count)
 
-        }Else{ Write-host $Server.Name "is not reachable"
-                $UnReachable += $Server}
-        
-    $AdminList += @($Admins)
-}
-#List it out
-    Write-Host "-----------------------------"
-    Write-host "Connected to "$Reachable.count" out of "$Servers.Count" Servers."
-    $FilterdAdminList = $AdminList | Sort-Object Username,Server -Unique
-    $FilterdAdminList | Group-Object Username | Select-Object Count, Name | Sort-Object Count -Descending
-    Write-host "There are "$UnReachable.count "unreachable servers, use $ UnReachable to see them. `nThis could be because of access rights."
+        #Check if the server can be reached
+            if(Test-Connection -Computername $Server.Name -Count 1 -ErrorAction SilentlyContinue){
+                    #Get the users
+                    $Admins = Get-LoggedOnUsers -ComputerName $Server.Name | Where-Object Username -Like "*admin*"
+                    Write-host "Done Checking"$Server.Name "..."
+                    $Reachable += $Server
 
-#$FilterdAdminList | Where-Object Username -EQ admingp | ft
+            }Else{ Write-host $Server.Name "is not reachable"
+                    $UnReachable += $Server}
+
+        $AdminList += @($Admins)
+    }
+    #List it out
+        Write-Host "-----------------------------"
+        Write-host "Connected to "$Reachable.count" out of "$Servers.Count" Servers."
+        $FilterdAdminList = $AdminList | Sort-Object Username,Server -Unique
+        $FilterdAdminList | Group-Object Username | Select-Object Count, Name | Sort-Object Count -Descending
+        Write-host "There are "$UnReachable.count "unreachable servers, use $ UnReachable to see them. `nThis could be because of access rights."
+
+    }catch{
+        Write-Host -ForegroundColor Red "Get-LoggedOnUsers isn't loaded. Dot-source Commandlets/Get-LoggedOnUser.ps1 first."
+    }
