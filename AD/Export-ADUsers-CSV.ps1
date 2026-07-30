@@ -1,6 +1,12 @@
-﻿#Export-ADUsers-CSV
-#v1.0
-#Creator: Nout Geens
+﻿<#
+.SYNOPSIS
+    Exports enabled AD users from a group or OU to CSV.
+.DESCRIPTION
+    Exports the distinguished name (as a folder-style path), name, creation date and enabled status of every enabled user in a given group or OU to a CSV file.
+.NOTES
+    Author: Nout Geens
+    Version: 1.0
+#>
 
 function Export-ADUsers-CSV{
 

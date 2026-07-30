@@ -1,6 +1,12 @@
-﻿#Export-DataGroupUsers
-# V1.0 
-# Creator: Nout
+﻿<#
+.SYNOPSIS
+    Exports the members of "data" access groups to a readable CSV.
+.DESCRIPTION
+    Finds AD groups matching a search base (e.g. Sharepoint data groups), translates the RW/RO suffix into readable Dutch labels, and writes each group's name plus its enabled members to a CSV file.
+.NOTES
+    Author: Nout Geens
+    Version: 1.0
+#>
 
 #region Declaratie
 $Searchbase = "Users-Sharepoint"

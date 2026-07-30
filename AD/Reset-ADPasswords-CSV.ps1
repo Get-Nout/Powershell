@@ -1,11 +1,15 @@
-﻿# Passwoord Reset based on text/csv File, Comma Seperated.
-# Creator: Nout Geens
-# Version: 1.0
-
-# CSV Format : Name, Type, Password
-# Name: "Nout Geens"
-# Type: "User"
-# Password: "SeCuére"
+﻿<#
+.SYNOPSIS
+    Bulk-resets AD user passwords from a CSV file.
+.DESCRIPTION
+    Reads a CSV (Name, Type, Password) and resets each listed user's password, prompting for confirmation before each reset. Reminds you to delete the plaintext CSV afterwards.
+.NOTES
+    Author: Nout Geens
+    Version: 1.0
+.EXAMPLE
+    CSV format: Name, Type, Password
+    "Nout Geens", "User", "SeCuére"
+#>
 
 Import-Module ActiveDirectory
 

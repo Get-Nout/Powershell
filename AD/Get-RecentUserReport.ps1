@@ -1,4 +1,13 @@
-﻿$ADGroup = "Users-nout-CXA"
+﻿<#
+.SYNOPSIS
+    Splits members of an AD group into recently active vs. inactive users.
+.DESCRIPTION
+    Checks the last logon date of every member of a given AD group against a cutoff (in months) and exports active/inactive users to separate CSVs plus a summary text file.
+.NOTES
+    Author: Nout Geens
+#>
+
+$ADGroup = "Users-nout-CXA"
 $LatestLogonMonths = 3 #months
 $ExportLocation = "c:\temp\"
 $CustomerName = "nout"

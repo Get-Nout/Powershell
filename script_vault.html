@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Script Vault — Automation Archive</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#111826; --panel:#161f30; --panel-2:#1c2740; --line:#2a3752;
+    --amber:#f0a531; --amber-soft:#f0a53133; --teal:#3fc6bd; --teal-soft:#3fc6bd2b;
+    --coral:#ef6f6c; --coral-soft:#ef6f6c2b; --cream:#f4efe4; --muted:#8b96ad;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:radial-gradient(circle at 10% 0%, #1b2438 0%, var(--ink) 45%);
+    color:var(--cream); font-family:'Inter',sans-serif; padding:36px 28px 60px;
+  }
+  .wrap{max-width:1240px;margin:0 auto;}
+  ::selection{ background:var(--amber-soft); }
+
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;
+    border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:26px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace; letter-spacing:.14em; text-transform:uppercase;
+    font-size:12px; color:var(--amber); margin-bottom:8px;
+  }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:38px; margin:0; line-height:1.05; }
+  h1 span{color:var(--muted); font-weight:500;}
+  .range{ font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--muted); text-align:right; }
+  .range b{color:var(--cream);}
+
+  .stats{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line);
+    border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:28px;
+  }
+  .stat{ background:var(--panel); padding:20px 18px; }
+  .stat .num{ font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:700; color:var(--cream); }
+  .stat .num small{font-size:14px;color:var(--muted);font-weight:500;}
+  .stat .lbl{ font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-top:6px; }
+  .stat.hi .num{color:var(--amber);}
+
+  .toprow{ display:grid; grid-template-columns:1.3fr 1fr; gap:20px; margin-bottom:26px; }
+  .card{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--line);
+    border-radius:16px; padding:20px 20px 10px;
+  }
+  .card h2{ font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600; margin:0 0 2px; display:flex; align-items:center; gap:8px; }
+  .card h2 .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; background:var(--amber-soft); color:var(--amber);
+    padding:2px 7px; border-radius:20px; letter-spacing:.05em;
+  }
+  .card p.sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px; }
+  .chartbox{position:relative;}
+
+  /* Controls */
+  .controls{ display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-bottom:20px; }
+  .searchbox{
+    flex:1; min-width:220px; position:relative;
+  }
+  .searchbox input{
+    width:100%; background:var(--panel); border:1px solid var(--line); color:var(--cream);
+    padding:12px 14px 12px 38px; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px;
+  }
+  .searchbox input:focus{ outline:none; border-color:var(--amber); }
+  .searchbox .icon{ position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:14px; }
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; padding:8px 14px; border-radius:20px;
+    background:var(--panel); border:1px solid var(--line); color:var(--muted); cursor:pointer;
+    transition:all .15s; white-space:nowrap;
+  }
+  .chip:hover{ border-color:var(--amber); color:var(--cream); }
+  .chip.active{ background:var(--amber); color:#1a1200; border-color:var(--amber); font-weight:600; }
+  .chip .n{ opacity:.7; margin-left:4px; }
+
+  .resultmeta{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); margin-bottom:14px; }
+
+  /* Card grid */
+  .lib-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px; }
+  .script-card{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--line);
+    border-radius:14px; padding:16px 18px; cursor:pointer; transition:transform .12s, border-color .12s;
+    display:flex; flex-direction:column; gap:8px; min-height:140px;
+  }
+  .script-card:hover{ transform:translateY(-2px); border-color:var(--amber); }
+  .sc-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .sc-title{ font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600; color:var(--cream); line-height:1.3; }
+  .sc-path{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted); margin-top:2px; }
+  .lang-badge{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; padding:3px 8px; border-radius:6px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .lang-powershell{ background:var(--teal-soft); color:var(--teal); }
+  .lang-batch{ background:var(--coral-soft); color:var(--coral); }
+  .lang-csharp{ background:var(--amber-soft); color:var(--amber); }
+  .lang-text{ background:#8b96ad2b; color:var(--muted); }
+  .sc-desc{ font-size:12.5px; color:var(--muted); line-height:1.5; flex:1; }
+  .sc-desc .code-preview{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:#7d8bab; background:#0f1524; padding:6px 8px; border-radius:6px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sc-foot{ display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); margin-top:auto; padding-top:6px; border-top:1px solid var(--line); }
+  .sc-foot .creator{ color:var(--teal); }
+  .empty-note{ font-style:italic; opacity:.6; }
+
+  .no-results{ text-align:center; padding:60px 20px; color:var(--muted); font-family:'IBM Plex Mono',monospace; }
+
+  /* Reference file cards */
+  .ref-section{ margin-top:34px; }
+  .ref-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:14px; }
+  .ref-card{
+    background:var(--panel); border:1px dashed var(--line); border-radius:14px; padding:16px 18px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .ref-card .rc-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; }
+  .ref-card .rc-meta{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); }
+  .ref-card a{ color:var(--amber); text-decoration:none; font-family:'IBM Plex Mono',monospace; font-size:11.5px; }
+  .ref-card a:hover{ text-decoration:underline; }
+
+  /* Modal */
+  .modal-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(10,13,22,.75); backdrop-filter:blur(3px);
+    z-index:100; align-items:center; justify-content:center; padding:30px;
+  }
+  .modal-backdrop.open{ display:flex; }
+  .modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; max-width:900px; width:100%;
+    max-height:86vh; display:flex; flex-direction:column; overflow:hidden;
+  }
+  .modal-head{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:20px 24px;
+    border-bottom:1px solid var(--line);
+  }
+  .modal-head h3{ font-family:'Space Grotesk',sans-serif; font-size:19px; margin:0 0 4px; }
+  .modal-head .meta{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--muted); }
+  .modal-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .mbtn{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--cream); padding:8px 13px; border-radius:8px; cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .mbtn:hover{ border-color:var(--amber); color:var(--amber); }
+  .mbtn.close{ font-size:16px; padding:8px 12px; }
+  .modal-body{ overflow:auto; padding:0; }
+  .modal-body pre{
+    margin:0; padding:22px 24px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; line-height:1.65;
+    color:#d7dfef; white-space:pre-wrap; word-break:break-word;
+  }
+  .modal-body pre .cmt{ color:#6b7794; }
+  .modal-body pre .str{ color:#8fd6c8; }
+  .modal-body pre .kw{ color:var(--amber); }
+  .modal-body pre .var{ color:#7cb4f0; }
+
+  footer{ margin-top:36px; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:.05em; }
+
+  @media (max-width:900px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .toprow{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="eyebrow">● Local Archive — Read Only</div>
+      <h1>Script <span>Vault</span></h1>
+    </div>
+    <div class="range">Collected scripts<br><b id="rangeLbl">—</b></div>
+  </header>
+
+  <div class="stats" id="statsRow"></div>
+
+  <div class="toprow">
+    <div class="card">
+      <h2>Scripts by category <span class="tag">OVERVIEW</span></h2>
+      <p class="sub">Where everything lives, at a glance.</p>
+      <div class="chartbox" style="height:210px;"><canvas id="catChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Language mix</h2>
+      <p class="sub">What it's written in.</p>
+      <div class="chartbox" style="height:210px;"><canvas id="langChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="searchbox">
+      <span class="icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Search by name, description, or creator…">
+    </div>
+  </div>
+  <div class="chips" id="categoryChips"></div>
+  <div class="resultmeta" id="resultMeta" style="margin-top:16px;"></div>
+
+  <div class="lib-grid" id="libGrid"></div>
+  <div class="no-results" id="noResults" style="display:none;">No scripts match that search.</div>
+
+  <div class="ref-section" id="refSection" style="display:none;">
+    <div class="card">
+      <h2>Reference files <span class="tag">NOT EMBEDDED</span></h2>
+      <p class="sub">Larger companion files, shared separately — keep them in the same folder as this page if you want the links below to resolve.</p>
+      <div class="ref-grid" id="refGrid"></div>
+    </div>
+  </div>
+
+  <footer id="footerNote"></footer>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3 id="modalTitle">—</h3>
+        <div class="meta" id="modalMeta">—</div>
+      </div>
+      <div class="modal-actions">
+        <button class="mbtn" id="copyBtn">⧉ Copy</button>
+        <button class="mbtn" id="downloadBtn">⬇ Download</button>
+        <button class="mbtn close" id="closeModal">✕</button>
+      </div>
+    </div>
+    <div class="modal-body"><pre id="modalCode"></pre></div>
+  </div>
+</div>
+
+<script>
+const SCRIPTS = [
+  {
+    "title": "Compare-ADGroups-Between-Users",
+    "filename": "Compare-ADGroups-Between-Users.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 36,
+    "content": "<#\r\n.SYNOPSIS\r\n    Compares AD group membership between two users.\r\n.DESCRIPTION\r\n    Retrieves the AD groups for two specified users and reports which groups each user has that the other doesn't.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.1\r\n#>\r\n\r\n#Imports\r\nImport-Module ActiveDirectory\r\n\r\n#Declaration\r\n$User1 = \"*User one*\"\r\n$User2 = \"*User twoo*\"\r\n\r\n#Getting the users\r\n$User1 = Get-ADUser -filter {name -like $User1}\r\n$User2 = Get-ADUser -filter {name -like $User2}\r\n\r\n#Get the groups\r\n$User1Groups = Get-ADPrincipalGroupMembership -Identity $User1.samaccountname\r\n$User2Groups = Get-ADPrincipalGroupMembership -Identity $User2.samaccountname\r\n\r\n#Compare the groups\r\n$Compare = Compare-Object -ReferenceObject $User1Groups -DifferenceObject $User2Groups -PassThru |Select-Object name, Sideindicator\r\n\r\n#Make it human Readable\r\nforeach($comparison in $Compare){\r\n    $comparison.SideIndicator = $comparison.SideIndicator.replace(\"<=\",$User1.name)\r\n    $comparison.SideIndicator = $comparison.SideIndicator.replace(\"=>\",$User2.name)   \r\n}\r\n\r\n#Show it\r\n$Compare",
+    "description": "Retrieves the AD groups for two specified users and reports which groups each user has that the other doesn't.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Convert-ADGroups-DL-G-U",
+    "filename": "Convert-ADGroups-DL-G-U.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 19,
+    "content": "<#\r\n.SYNOPSIS\r\n    Converts AD group scope from Domain Local to Global or Universal.\r\n.DESCRIPTION\r\n    Loops through groups matching a naming filter under a given OU and switches their scope. Domain Local groups cannot convert straight to Global - they must pass through Universal first.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.0\r\n#>\r\n\r\n#Declaration\r\n    $GroupLocation = \"OU=Printing,OU=Local-Groups,DC=nout,DC=local\"\r\n    $Groups = Get-ADGroup -SearchBase $GroupLocation -Filter {name -like \"nout-PRT-*\"}\r\n\r\n#Loop it\r\nforeach($Group in $Groups){\r\n    Set-ADGroup $Groupt -GroupScope Universal\r\n    Set-ADGroup $Groupt -GroupScope Global\r\n    }\r\n",
+    "description": "Loops through groups matching a naming filter under a given OU and switches their scope. Domain Local groups cannot convert straight to Global - they must pass through Universal first.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Create-ADGroupBased-AdGroups",
+    "filename": "Create-ADGroupBased-AdGroups.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 60,
+    "content": "<#\r\n.SYNOPSIS\r\n    Syncs members from \"-Default\" AD groups into their corresponding base groups.\r\n.DESCRIPTION\r\n    Finds AD groups whose name matches a naming convention (e.g. \"Nout-prt*_Default\") and adds each enabled member into the matching base group (e.g. \"Nout-prt1\"). Used to keep resource/printer groups populated from a default membership group.\r\n.NOTES\r\n    Author: Nout Geens\r\n#>\r\n\r\n#Declaration\r\n$NameIndicator = \"Nout-prt*\"\r\n$DefaultIndicator = \"*default\"\r\n\r\n#Get the groups\r\n$PrinterGroups = Get-ADGroup -Filter { (name -like $NameIndicator) -and (name -like $DefaultIndicator) } |Select-Object Name -ExpandProperty Name\r\n\r\n#Clear previous values\r\n$DoesNotExist = @()\r\n\r\n#Loop the loop\r\nforeach($PrinterGroup in $PrinterGroups){\r\n    Write-host \"Checking Printergroup:\"$PrinterGroup\r\n\r\n    #Generate the \"basic group Name\"\r\n    $NonDefaultGroup = $PrinterGroup -replace(\"_Default\",\"\")\r\n\r\n    try{\r\n        #Get the \"basic group\"\r\n        $NonDefaultGroup = Get-ADGroup -Identity $NonDefaultGroup\r\n        Write-Host \"Found Group:          \" $NonDefaultGroup.name\r\n\r\n        #Get the members of the Default Group\r\n        $Members = Get-ADGroupMember -Identity $PrinterGroup.Name |Select-Object Name, SamAccountName,Enabled\r\n        \r\n        Try{\r\n            #Add them to the \"basic groups\"\r\n            foreach($Member in $Members){\r\n                if($Member.Enabled){\r\n                    Write-Host -ForegroundColor Yellow $Member.name\r\n                    Add-ADGroupMember -Identity $NonDefaultGroup.Name -Members $Member.SamAccountName\r\n                }\r\n            }\r\n        }Catch{\r\n            #error on Add-AdGroupMember\r\n            Write-Host -ForegroundColor Yellow \"Already a member of the group.\"\r\n        }\r\n        \r\n    }catch{\r\n        #error on Get-AdGroup\r\n        Write-Host -ForegroundColor Red \"Counterpart of $PrinterGroup does not exist!\"\r\n        $DoesNotExist += $NonDefaultGroup + \",\"\r\n    }\r\n}\r\n\r\n#Show them what u have done\r\nif($DoesNotExist -ne \",\"){\r\n    Write-Host -ForegroundColor Red \"These are not AD Groups:\"\r\n    Write-Host -ForegroundColor Red $DoesNotExist |Format-Table -AutoSize\r\n}else{ Write-Host -ForegroundColor Green \"Everything seems fine.\" }\r\n\r\n",
+    "description": "Finds AD groups whose name matches a naming convention (e.g. \"Nout-prt*_Default\") and adds each enabled member into the matching base group (e.g. \"Nout-prt1\"). Used to keep resource/printer groups populated from a default membership group.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Create-CleanOUStructure",
+    "filename": "Create-CleanOUStructure.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 36,
+    "content": "<#\r\n.SYNOPSIS\r\n    Builds a standard OU sub-structure under a given AD Organizational Unit.\r\n.DESCRIPTION\r\n    Creates a fixed set of sub-OUs (Computers, Global-Groups, Local-Groups, Data, Printing, App, Servers, TS, Service-Accounts, Users, Mailbox, Disabled) under a target OU, nesting some under others per a lookup table.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.2\r\n    When adding new sub-OUs, update both $SubOUs and the Switch block.\r\n#>\r\n\r\n#Declaration\r\n    $OUName =\"\"\r\n \r\n #Generate the Dname \r\n    $OU_DName = Get-ADOrganizationalUnit -Filter { name -like $OUName } | Select-Object DistinguishedName -ExpandProperty DistinguishedName \r\n    $SubOUs = \"Computers\",\"Global-Groups\",\"Local-Groups\",\"Data\",\"Printing\",\"App\",\"Servers\",\"TS\",\"Service-Accounts\",\"Users\",\"Mailbox\",\"Disabled\"\r\n\r\n#Create The OUs\r\nforeach ($SubOU in $SubOUs){\r\n$Path =\"\"\r\n    #Create the subfolders, Add the Higher OU to this list when adding new ones\r\n    Switch ($SubOU)\r\n    {\r\n        \"Data\"            {$Path = \"OU=Local-Groups,\"}\r\n        \"Printing\"        {$Path = \"OU=Local-Groups,\"}\r\n        \"App\"             {$Path = \"OU=Local-Groups,\"}\r\n        \"TS\"              {$Path = \"OU=Servers,\"}\r\n        \"Mailbox\"         {$Path = \"OU=Users,\"}\r\n        \"Disabled\"        {$Path = \"OU=Users,\"}\r\n        \"Suppliers\"    {$Path = \"OU=Users,\"}\r\n    }\r\n        $Path =  $Path + $OU_DName\r\n        New-ADOrganizationalUnit -Name $SubOU -Path $Path\r\n        Write-Host -ForegroundColor Green \"Created Ou:\"$SubOU \"under [\" $Path \"]\"\r\n}\r\n",
+    "description": "Creates a fixed set of sub-OUs (Computers, Global-Groups, Local-Groups, Data, Printing, App, Servers, TS, Service-Accounts, Users, Mailbox, Disabled) under a target OU, nesting some under others per a lookup table.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Create-FolderBased-ADGroups",
+    "filename": "Create-FolderBased-ADGroups.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 78,
+    "content": "<#\r\n.SYNOPSIS\r\n    Generates Full Control / Read-Write / Read-Only AD groups per subfolder and applies them as NTFS permissions.\r\n.DESCRIPTION\r\n    Walks a folder tree and, for each folder found, creates matching \"-FC\", \"-RW\" and \"-RO\" AD security groups (if they don't already exist) and grants each group the corresponding NTFS rights on that folder.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.3\r\n    Changelog:\r\n        1.1 Cleaned up code\r\n        1.2 Changed variable names\r\n        1.3 Added FC groups\r\n        1.4 Added NTFS additions\r\n#>\r\n#Imports\r\nImport-Module activeDirectory\r\n\r\n#Declaration\r\n$Pre = \"Cust-Share-\"\r\n$ParentFolder = \"P:\\DUMP\\NTFSTest\"\r\n$OUPath = \"OU=_temp-users,DC=nout,DC=LOCAL\"\r\n$Depth = 2\r\n\r\n#Get the folders\r\n$Folders = Get-ChildItem -Path $ParentFolder -Recurse -Depth $Depth\r\n\r\n#Generate the folder names\r\nforeach ($Folder in $Folders){\r\n    $FullName = $Pre + $Folder\r\n    $FCName = $FullName +\"-FC\"\r\n    $RWName = $FullName +\"-RW\"\r\n    $ROName = $FullName +\"-RO\"\r\n    \r\n    #region Loop every folder to Create the groups\r\n    #Full Control groups\r\n    Try{    Get-ADGroup $FCName| Out-Null\r\n            Write-Host -ForegroundColor Yellow $FCName \"Already Exists\"}\r\n    Catch{  \r\n            New-ADGroup -Name $FCName -GroupCategory Security -GroupScope DomainLocal -Path $OUPath -ErrorAction SilentlyContinue\r\n            Write-Host -ForegroundColor Green \"Created AD Group:\" $FCName}\r\n\r\n    #Read-Write Groups\r\n    Try{    Get-ADGroup $RWName| Out-Null\r\n            Write-Host -ForegroundColor Yellow $RWName \"Already Exists\"}\r\n    Catch{  \r\n            New-ADGroup -Name $RWName -GroupCategory Security -GroupScope DomainLocal -Path $OUPath -ErrorAction SilentlyContinue\r\n            Write-Host -ForegroundColor Green \"Created AD Group:\" $RWName}\r\n\r\n    #Read groups\r\n    Try{    Get-ADGroup $ROName | Out-Null\r\n            Write-Host -ForegroundColor Yellow $ROName \"Already Exists\"}\r\n    Catch{  \r\n            New-ADGroup -Name $ROName -GroupCategory Security -GroupScope DomainLocal -Path $OUPath -ErrorAction SilentlyContinue\r\n            Write-Host -ForegroundColor Green \"Created AD Group:\" $ROName}\r\n    #endregion\r\n    #>\r\n\r\n    #Add The Groups to NTFS (making sure they exist)\r\n    $FCGroup = Get-ADGroup -Filter { Name -like $FCName}\r\n    $RWGroup = Get-ADGroup -Filter { Name -like $RWName}\r\n    $ROGroup = Get-ADGroup -Filter { Name -like $ROName}\r\n\r\n    #Get the ACL\r\n    $ACL = Get-Acl $Folder.FullName\r\n    $FCRule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList ($FCGroup.Name,'FullControl','ContainerInherit,ObjectInherit','None','Allow')\r\n    $RWRule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList ($RWGroup.Name,'Modify','ContainerInherit,ObjectInherit','None','Allow')\r\n    $RORule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList ($ROGroup.Name,'ListDirectory','ContainerInherit,ObjectInherit','None','Allow')\r\n    \r\n    #Add the rules to the ACL\r\n    $ACL.SetAccessRuleProtection($false,$false)\r\n    $ACL.AddAccessRule($FCRule)\r\n    $ACL.AddAccessRule($RWRule)\r\n    $ACL.AddAccessRule($RORule)\r\n\r\n    $Path = $Folder | Select-Object FullName -ExpandProperty FullName\r\n    $ACL | Set-ACL $Path\r\n\r\n}",
+    "description": "Walks a folder tree and, for each folder found, creates matching \"-FC\", \"-RW\" and \"-RO\" AD security groups (if they don't already exist) and grants each group the corresponding NTFS rights on that folder.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Disable-ExpiredUsers",
+    "filename": "Disable-ExpiredUsers.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 19,
+    "content": "<#\r\n.SYNOPSIS\r\n    Disables AD user accounts whose account expiration date has passed.\r\n.DESCRIPTION\r\n    Finds every expired AD account and disables it.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.0\r\n    Warning: this has no confirmation check - review the account list before running in production.\r\n#>\r\n\r\n#Get the Users\r\n\t$users = Search-ADAccount -AccountExpired -UsersOnly -ResultPageSize 2000 -resultSetSize $null| Select-Object SamAccountName -ExpandProperty SamAccountName\r\n\t\r\n#foreach user\r\n    foreach($user in $users){\r\n        #Get it, Disable it\r\n\t\tGet-ADUser -Identity $user | Disable-ADAccount\r\n\t}",
+    "description": "Finds every expired AD account and disables it.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Export-ADUsers-CSV",
+    "filename": "Export-ADUsers-CSV.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 68,
+    "content": "<#\r\n.SYNOPSIS\r\n    Exports enabled AD users from a group or OU to CSV.\r\n.DESCRIPTION\r\n    Exports the distinguished name (as a folder-style path), name, creation date and enabled status of every enabled user in a given group or OU to a CSV file.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.0\r\n#>\r\n\r\nfunction Export-ADUsers-CSV{\r\n\r\n    Param(\r\n        [Parameter()]\r\n        [String]$Group,\r\n        [Parameter()]\r\n        [String]$OU,\r\n        [Parameter()]\r\n        [String]$File = \"C:\\temp\\ADUsers.csv\",\r\n        [Parameter()]\r\n        [int32]$Count = 0\r\n        )\r\n        \r\n#Get the members\r\n    if(-not $Group){\r\n    if(-not $OU){\r\n        Write-host -BackgroundColor Black -ForegroundColor Red \"Fill in Group or OU\"\r\n        pause\r\n        Break\r\n    }else{$Members = Get-ADUser -Filter * -SearchBase $OU}\r\n    }else{$Members = Get-ADGroupMember $Group -Recursive}\r\n\r\n#Hmm Wraps\r\n    $Wrapper = \"CName\" + \",\" + \"Name\" + \",\" + \"Creation Date\" + \",\" + \"Enabled\" \r\n\r\n    #Write to file (Overwrites)\r\n    $Wrapper | Set-Content $File\r\n\r\n#Do things for everyone\r\nforeach($Member in $Members){\r\n    if( (Get-ADUser -Identity $Member | Select-Object Enabled -ExpandProperty Enabled) -eq $true){ #Added Enabled > non default property\r\n        $FullUser = Get-ADUser -Identity $Member -Properties WhenCreated                           #Added WhenCreated > non default property\r\n        $CN = ($FullUser | Select-Object DistinguishedName -ExpandProperty DistinguishedName ) `\r\n            -replace (\",\",\"\\\") `\r\n            -replace (\"OU=\",\"\") `\r            -replace (\"CN=\",\"\") `\r\n            -replace (\"DC=\",\"\") `\r\n            -replace (\"\\\\local\",\".local\")\r\n\r\n        #Extract the needed values\r\n        $Name = $FullUser | Select-Object Name -ExpandProperty Name \r\n        $CreationDate = $FullUser | Select-Object WhenCreated -ExpandProperty WhenCreated\r\n        $Enabled = $FullUser | Select-Object enabled -ExpandProperty enabled\r\n        \r\n        #Create the Strings\r\n        $Row = $CN + \",\" + $Name + \",\" + $CreationDate + \",\" + $Enabled\r\n\r\n        #Write to file (appends)\r\n        $Row | Add-Content $File\r\n\r\n        #Count\r\n        $Count = $Count + 1\r\n    } }\r\n\r\n#Write the count a letter\r\n    Write-host -BackgroundColor Cyan -ForegroundColor Black \"Current ADUser Count:\" $Count\r\n    Write-Host -BackgroundColor Black -ForegroundColor Green \"Ding, your Microwave Meal is ready, Pickup at: \" $File \"!\"\r\n}",
+    "description": "Exports the distinguished name (as a folder-style path), name, creation date and enabled status of every enabled user in a given group or OU to a CSV file.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Export-DatagroupUsers",
+    "filename": "Export-DatagroupUsers.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 46,
+    "content": "<#\r\n.SYNOPSIS\r\n    Exports the members of \"data\" access groups to a readable CSV.\r\n.DESCRIPTION\r\n    Finds AD groups matching a search base (e.g. Sharepoint data groups), translates the RW/RO suffix into readable Dutch labels, and writes each group's name plus its enabled members to a CSV file.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.0\r\n#>\r\n\r\n#region Declaratie\r\n$Searchbase = \"Users-Sharepoint\"\r\n$File = \"C:\\temp\\SharepointRechten.csv\"\r\n$Exclude = \"*Owner*\"\r\n\r\n#Stars everywhere\r\n$SearchbaseWildcard =  \"*\" + $Searchbase + \"*\"\r\n\r\n#Get the Groups\r\n$Groups = Get-ADGroup -Filter { (name -like $SearchbaseWildcard) -and ( name -notlike $Exclude)}\r\n\r\n#Foreach Group\r\nforeach($Group in $Groups){\r\n    #Converting the Group to non-IT readable\r\n    $GroupName = $Group.Name\r\n    $GroupName = $GroupName.Replace(($Searchbase+\"-\"),\"\")\r\n    $GroupName = $GroupName.Replace(\"RW\",\"Schrijf Rechten\")\r\n    $GroupName = $GroupName.Replace(\"RO\",\"Lees Rechten\") \r\n    $GroupName = $GroupName.Replace(\"-\",\" - \")\r\n    \r\n    #Putting it in the file (Appends)\r\n    $GroupName | Add-Content -Path $File\r\n\r\n    #Getting the users\r\n    $Users = Get-ADGroupMember -Identity $Group | Select-Object SamAccountName,Name -ExpandProperty SamAccountName\r\n\r\n    #foreach User\r\n    foreach($User in $Users){\r\n        #Check if they are enabled\r\n        if(Get-ADUser -Identity $User -Properties Enabled | Select-Object Enabled -ExpandProperty Enabled){\r\n        #Create an indent, add the username, write to file (Appends)\r\n        \"    - \"+$User.Name | Add-Content -Path $File\r\n        }\r\n    }\r\n    \r\n}",
+    "description": "Finds AD groups matching a search base (e.g. Sharepoint data groups), translates the RW/RO suffix into readable Dutch labels, and writes each group's name plus its enabled members to a CSV file.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Find-GPO-String",
+    "filename": "Find-GPO-String.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 45,
+    "content": "<#\r\n.SYNOPSIS\r\n    Searches every GPO in a domain for a given string.\r\n.DESCRIPTION\r\n    Searches the XML report of each GPO (optionally limited to those matching a customer name prefix) for a given string and reports which GPOs matched and where.\r\n.NOTES\r\n    Original Author: Tony Murray\r\n    Editor: Nout Geens (modified to be more readable in larger AD structures)\r\n    Version: 1.2\r\n    Date: 2020-06-25\r\n#>\r\n\r\n#Imports\r\nImport-Module grouppolicy \r\n\r\n#Declaration\r\n$String = Read-Host -Prompt \"What string do you want to search for?\" \r\n$CustomerName = Read-Host -Prompt \"Provide the Customer Name\"\r\n\r\n# Set the domain to search for GPOs \r\n$DomainName = $env:USERDNSDOMAIN \r\n \r\n# Find GPOs in the current domain \r\nWrite-Host \"Finding all the GPOs in $DomainName\" \r\nWrite-Host \"Limiting to Customer $CustomerName\" \r\n\r\n$GPOs = Get-GPO -all -Domain $DomainName | Where-Object {$_.displayName -like \"$CustomerName*\" }\r\n\r\n# Look through each GPO's XML for the string \r\nWrite-Host \"-----------------------------\"\r\nWrite-Host \"Starting search....\" \r\n\r\nforeach ($GPO in $GPOs) { \r\n    $report = Get-GPOReport -Guid $GPO.Id -ReportType Xml \r\n    if ($report -match $string) { \r\n        Try{\r\n            $GPO | Add-member -NotePropertyName \"PathN\" -NotePropertyValue ($report.Substring($report.IndexOf(\"<SOMPath>\")+9,$report.IndexOf(\"</SOMPath>\") - $report.IndexOf(\"<SOMPath>\") -9)) -Force -ErrorAction SilentlyContinue\r\n        }Catch{  Write-host \"Error in path of the GPO show below\"}\r\n        write-host -ForegroundColor \"Green\" \"Match found in: $($GPO.DisplayName) at \" $Gpo.PathN \r\n\r\n        $FoundSomething = $true\r\n    }\r\n} \r\n#Check if we found something\r\nif(!$FoundSomething){ Write-Host -ForegroundColor Red \"No matches found.\"}\r\n",
+    "description": "Searches the XML report of each GPO (optionally limited to those matching a customer name prefix) for a given string and reports which GPOs matched and where.",
+    "creator": "Nout Geens (edit of Tony Murray)"
+  },
+  {
+    "title": "Get-ADComputers-Enabled",
+    "filename": "Get-ADComputers-Enabled.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 33,
+    "content": "<#\r\n.SYNOPSIS\r\n    Reports AD computer accounts and flags stale ones.\r\n.DESCRIPTION\r\n    Retrieves every AD computer account, splits it into enabled/disabled, then highlights enabled computers that haven't logged on in the last month or the last year.\r\n.NOTES\r\n    Author: Nout Geens\r\n#>\r\n\r\n#Get Every AD Computer\r\n    $Computers = Get-ADComputer -filter * -Properties Created,LastBadPasswordAttempt,LastLogonDate,Modified,OperatingSystem | `\r\n                 Select-Object Name,SamAccountName,Enabled,OperatingSystem,Created,Modified,LastLogonDate,LastBadPasswordAttempt,SID,ObjectGUID,DistinguishedName\r\n\r\n#Split it into Enabled & Disabled\r\n    $Enabled = $Computers | Where-Object Enabled -EQ $True\r\n    $Disabled = $Computers | Where-Object Enabled -EQ $False\r\n\r\n    #Select those who didn't logon one Month\r\n    $1MonthAgo = (Get-Date).AddMonths(-1)\r\n    $1MonthNoLogon = $Enabled | Where-Object LastLogondate -LT $1MonthAgo\r\n\r\n    #Select those who didn't logon one Year\r\n    $1YearAgo = (Get-Date).AddYears(-1)\r\n    $1YearNoLogon = $Enabled | Where-Object LastLogondate -LT $1YearAgo\r\n\r\n#List it out\r\n    Write-host \"---------------------------------------\"\r\n    Write-host \"Total AD Computers:\"$Computers.Count \"(`$Computers)\"\r\n    Write-Host \"    Enabled AD Computers:\"($Enabled).count \"(`$Enabled)\"\r\n    Write-Host \"    - Didn't logon for one month:\"($1MonthNoLogon).count \"(`$1MonthNoLogon)\"\r\n    Write-Host -f r \"    - Didn't logon for one year:\"($1YearNoLogon).count \"(`$1YearNoLogon)\"\r\n    Write-Host \"    Disabled AD Computers:\"($Disabled).count \"(`$Disabled)\"\r\n    Write-host \"---------------------------------------\"\r\n",
+    "description": "Retrieves every AD computer account, splits it into enabled/disabled, then highlights enabled computers that haven't logged on in the last month or the last year.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-DataGroupMembers",
+    "filename": "Get-DataGroupMembers.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 47,
+    "content": "<#\r\n.SYNOPSIS\r\n    Reports on Sharepoint-style data access group membership and rights.\r\n.DESCRIPTION\r\n    Finds AD groups matching a naming filter, tags each with its access level (Read Write / Full Control / Read Only) and target folder derived from the group name, then exports the group, folder, access level and member list to CSV.\r\n.NOTES\r\n    Author: Nout Geens\r\n#>\r\n\r\n#Declaration\r\n$GroupNameFilter = \"users-sharepoint-*\"\r\n$CSVPath = \"C:\\temp\\Sharepoint Users.csv\"\r\n\r\n#Imports \r\nImport-module ActiveDirectory\r\n\r\n#Get the Groups\r\n$SPGroups = Get-ADGroup -Filter * | Where-Object name -Like $GroupNameFilter | Select-Object *\r\n\r\n\r\n$SPGroupsU = @()\r\nforeach($SPGroup in $SPGroups){\r\n    #Foreach group, check if it's RW, FC or RO\r\n    if($SPGroup.Name -like \"*RW\"){\r\n        $SPGroup | Add-Member -NotePropertyName \"FolderAccessRights\" -NotePropertyValue \"Read Write\" -Force        \r\n    }Elseif($SPGroup.name -like \"*FC\"){\r\n        $SPGroup | Add-Member -NotePropertyName \"FolderAccessRights\" -NotePropertyValue \"Full Control\" -Force\r\n    }Else{\r\n        $SPGroup | Add-Member -NotePropertyName \"FolderAccessRights\" -NotePropertyValue \"Read Only\" -Force\r\n    }\r\n\r\n    #Substring the name, Substring is based on length of GroupnameFilter (-17) and another -3 for the -RW\r\n    $FolderName = $SPGroup.Name.Substring(17,$SPGroup.Name.length -20)\r\n    $FolderName = $FolderName.Replace(\"-\",\"/\")\r\n    $SPGroup | Add-Member -NotePropertyName \"FolderName\" -NotePropertyValue $FolderName -Force    \r\n\r\n    #Get the members and add it to the object, Converted to string to export to csv\r\n    $Members = (Get-ADGroupMember -Identity $SPGroup.Name -Recursive | Select-Object Name -ExpandProperty Name) -join ', '\r\n    $SPGroups | Add-Member -NotePropertyName \"Members\" -NotePropertyValue $Members -Force\r\n\r\n    #Add the new objects to the new array\r\n    $SPGroupsU += $SPGroup | Select-Object *\r\n}\r\n\r\n#List out and convert to csv\r\n$SPGroupsU |Select-Object Name, FolderName, FolderAccessRights,Members | Export-Csv $CSVPath -Force -NoClobber -NoTypeInformation -Delimiter \";\"\r\n$SPGroupsU |Select-Object Name, FolderName, FolderAccessRights,Members | ft -auto \r\n",
+    "description": "Finds AD groups matching a naming filter, tags each with its access level (Read Write / Full Control / Read Only) and target folder derived from the group name, then exports the group, folder, access level and member list to CSV.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-DisabledUsers",
+    "filename": "Get-DisabledUsers.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 83,
+    "content": "<#\r\n.SYNOPSIS\r\n    Lists disabled AD users and checks whether they still have a mailbox.\r\n.DESCRIPTION\r\n    Connects to Exchange, finds every disabled AD user, and reports whether each has no mailbox, a shared mailbox, or a regular mailbox, plus a breakdown by company.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 3.1\r\n    Requires an Exchange PowerShell session (connection details are set inside the script).\r\n#>\r\n\r\n#Imports\r\nImport-Module ActiveDirectory\r\n\r\n#region Connect to Exchange (needed to get the shared mailboxes)\r\n#Declaratie\r\n\t$server = \"Exchange Server\"\r\n    $domain = \"nout.local\"\r\n#Connectie\r\n\t$serveruri = \"http://\" + $server + \".\" + $domain +\"/powershell/\" #FQDN\r\n\t$exchangeSession = New-PSSession `\r\n\t\t-ConfigurationName Microsoft.Exchange `\r\n\t\t-ConnectionUri $serveruri `\r\n\t\t-Authentication Kerberos\r\n\r\n\tImport-PSSession $exchangeSession\r\n#endregion\r\n\r\n#Get the Users\r\n    Write-host \"-------------------------------\"\r\n    Write-Host \"Getting the users, Please wait...\"\r\n\t$DisabledUsers = Get-ADUser -Filter * -Properties * | Where-Object Enabled -eq $false |Sort-Object Name\r\n\r\n#Reset Previous Values\r\n    Write-Host \"Resetting old values...\"\r\n    $IsShared =\"\";$User=\"\";$SharedU=@();$NonSharedU=@();$PlainUsers=@();$Users = @(); $Companies = @()\r\n\r\n#Get what we need\r\n    $Users = $DisabledUsers | Select-Object SamAccountName, Name, whenChanged,Company\r\n\r\n\r\n#Loop the users for: Mailboxes, Company\r\n    Write-Host \"Checking for Mailboxes & Companies...\"\r\n    foreach($User in $Users){\r\n\r\n        #Does the mailbox Exist\r\n        if(Get-mailbox -Identity $User.SamAccountName -ErrorAction SilentlyContinue){\r\n            $IsShared = Get-Mailbox -Identity $User.SamAccountName | Select-Object IsShared -ExpandProperty IsShared\r\n\r\n            if($IsShared){ #User has a shared mailbox               \r\n                Write-Host -ForegroundColor Green -BackgroundColor Black $User.Name \"is a shared Mailbox\"\r\n                $SharedU = $SharedU + $User\r\n\r\n            }else{ #User has a regular mailbox                \r\n                Write-Host -ForegroundColor Green -BackgroundColor Black $User.Name \"has a non-shared Mailbox.\"\r\n                $NonSharedU = $NonSharedU + $User\r\n            }\r\n                \r\n        }else{ #User has no mailbox\r\n            Write-Host -ForegroundColor Red -BackgroundColor Black $User.Name \"Has no Mailbox\"\r\n            $PlainUsers = $PlainUsers + $User\r\n        }\r\n\r\n        #Check for the company\r\n                if($user.Company){\r\n            $Companies += $user.Company\r\n        }else{\r\n            $Companies += \"Without A Company\"\r\n        }\r\n    }\r\n\r\n\r\n#Write the stats\r\n    Write-Host \"------------------------------------------\"\r\n    Write-host \"There are \" -NoNewline; Write-Host -ForegroundColor Yellow $DisabledUsers.Count -NoNewline; Write-Host \" disabled users in your ActiveDirectory.\"\r\n    Write-Host \"> \"-NoNewline; Write-Host -ForegroundColor Yellow $PlainUsers.count -NoNewline; Write-Host \" do not have a mailbox\"\r\n    Write-Host \"> \"-NoNewline; Write-Host -ForegroundColor Yellow ($SharedU.count + $NonSharedU.Count) -NoNewline; Write-Host \" have mailboxes\"\r\n    Write-Host \" -> \"-NoNewline; Write-Host -ForegroundColor Yellow $SharedU.count -NoNewline; Write-Host \" are shared mailboxes\"\r\n    Write-Host \" -> \"-NoNewline; Write-Host -ForegroundColor Yellow $NonSharedU.count -NoNewline; Write-Host \" are non shared mailboxes\"\r\n\r\n    $Companies | Group-Object |Select-Object Count, Name | Sort-Object Count -Descending |Format-Table\r\n\r\n    Write-Host \"------------------------------------------\"",
+    "description": "Connects to Exchange, finds every disabled AD user, and reports whether each has no mailbox, a shared mailbox, or a regular mailbox, plus a breakdown by company.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-GPOReport",
+    "filename": "Get-GPOReport.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 154,
+    "content": "<#\r\n.SYNOPSIS\r\n    Reports on GPO scope and coverage across a domain.\r\n.DESCRIPTION\r\n    Retrieves every GPO in the domain and reports which are fully disabled, how many users/computers/groups each applies to, and which have empty User or Computer settings despite those settings being enabled.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.0\r\n#>\r\n\r\n#Imports\r\n    Import-Module grouppolicy \r\n\r\n#Set the domain to search for GPOs \r\n    $DomainName = $env:USERDNSDOMAIN\r\n\r\n#Clear Values\r\n    $GPO = \"\";$GPOPerm =\"\"; $GPOs = @(); $DisabledGPOs = @();\r\n \r\n#Find GPOs in the current domain \r\n    Write-Host \"Getting All GPO's...\"\r\n    $GPOs = Get-GPO -all -Domain $DomainName | Select-Object * | Sort-Object DisplayName\r\n\r\n#Get the disabled Gpo's\r\n    $DisabledGPOs = $GPOs| Where-Object GpoStatus -EQ AllSettingsDisabled\r\n\r\n#Clear more values (Seprated for testing perposes)\r\n    $GPOObjects =@(); $GPOObjects0 =@(); $GPOObjects1 =@(); $GPOObjectsAuth1 =@();; $GPOObjectsAuth =@();\r\n    $GPOUserObjects =@(); $GPOUserObjects0 =@(); $GPOUserObjects1 =@(); $GPOUserObjectsAuth1 =@();; $GPOUserObjectsAuth =@();\r\n    $GPOCompObjects =@(); $GPOCompObjects0 =@(); $GPOCompObjects1 =@(); $GPOCompObjectsAuth1 =@();; $GPOCompObjectsAuth =@();\r\n    $GPOUserObjectSetEmpty=@();$GPOCompObjectSetEmpty=@();\r\n\r\n#region mainloop\r\n    foreach($GPO in $GPOs){\r\n        #Get the GPO Permission, check only the people it applies to\r\n        $GPOPerm = Get-GPPermission -Name $GPO.DisplayName -All |Where-Object Permission -eq \"GpoApply\"\r\n\r\n        #Add the users to the GPO object as a property called \"AppliesTo\"\r\n        $GPO |Add-Member -NotePropertyName AppliesTo -NotePropertyValue $GPOPerm.Trustee.Name\r\n        Write-Host -f Yellow $GPO.DisplayName -No;Write-Host \" has \" -No; Write-Host -f Yellow ($GPO.AppliesTo).count -No;Write-Host \" User, Computer or Group it is applied to.\"\r\n       \r\n        #region Create User & Computer Settings: Empty or not\r\n        [XML]$xml = Get-GPOReport -Name $GPO.DisplayName -ReportType xml\r\n\r\n            #region Check the user gpo count, if 3, it is empty\r\n            $GPOUserSet = $XML.GPO.User \r\n            $GPOUserSetCount = ($GPOUserSet | Get-Member -MemberType Property).count\r\n\r\n            if(($GPOUserSetCount -eq 3) -and ($GPO.GpoStatus -ne \"ComputerSettingsDisabled\") -and ($GPO.GpoStatus -ne \"AllSettingsDisabled\")){ #Create the property\r\n                $GPO |Add-Member -NotePropertyName UserSettingsEmpty -NotePropertyValue $True\r\n                $GPOUserObjectSetEmpty += $GPO\r\n            }else{ \r\n                $GPO |Add-Member -NotePropertyName UserSettingsEmpty -NotePropertyValue $False\r\n            }\r\n            #endregion\r\n\r\n            #region Check the comp gpo count, if 3, it is empty\r\n            $GPOCompSet = $XML.GPO.Computer\r\n            $GPOCompSetCount = ($GPOCompSet | Get-Member -MemberType Property).count\r\n\r\n            if(($GPOCompSetCount -eq 3 ) -and ($GPO.GpoStatus -ne \"ComputerSettingsDisabled\") -and ($GPO.GpoStatus -ne \"AllSettingsDisabled\")){\r\n                $GPO |Add-Member -NotePropertyName ComputerSettingsEmpty -NotePropertyValue $True\r\n                $GPOCompObjectSetEmpty += $GPO\r\n            }else{\r\n                $GPO |Add-Member -NotePropertyName ComputerSettingsEmpty -NotePropertyValue $False\r\n            }\r\n            #endregion\r\n\r\n        #endregion\r\n\r\n        \r\n        #region Add the edited objects into another Array\r\n            #region Loop for Applies To: Everything\r\n                if(($GPO.AppliesTo).count -eq 0){\r\n                    $GPOObjects0 += $GPO\r\n                }elseif(($GPO.AppliesTo).count -eq 1){\r\n                    #Check for Authenticated users\r\n                    if($GPO.AppliesTo -eq \"Authenticated Users\"){ $GPOObjectsAuth1  += $GPO }    \r\n                    $GPOObjects1 += $GPO\r\n                }else{\r\n                    if($GPO.AppliesTo -eq \"Authenticated Users\"){ $GPOObjectsAuth  += $GPO }    \r\n                    $GPOObjects += $GPO\r\n                }#endregion Everything\r\n\r\n            #region Loop for Applies To: Computer\r\n                if($GPO.GpoStatus -eq \"UserSettingsDisabled\"){\r\n                    if(($GPO.AppliesTo).count -eq 0){\r\n                        $GPOCompObjects0 += $GPO\r\n                    }elseif(($GPO.AppliesTo).count -eq 1){\r\n                        #Check for Authenticated users\r\n                        if($GPO.AppliesTo -eq \"Authenticated Users\"){ $GPOCompObjectsAuth1  += $GPO }    \r\n                        $GPOCompObjects1 += $GPO\r\n                    }else{\r\n                        if($GPO.AppliesTo -eq \"Authenticated Users\"){ $GPOCompObjectsAuth  += $GPO }    \r\n                        $GPOCompObjects += $GPO\r\n                    }     \r\n                      \r\n                }#endregion Computer\r\n\r\n            #region Loop for Applies To: Users\r\n                if($GPO.GpoStatus -eq \"ComputerSettingsDisabled\"){\r\n                    if(($GPO.AppliesTo).count -eq 0){\r\n                        $GPOUserObjects0 += $GPO\r\n                    }elseif(($GPO.AppliesTo).count -eq 1){\r\n                        #Check for Authenticated users\r\n                        if($GPO.AppliesTo -eq \"Authenticated Users\"){ $GPOUserObjectsAuth1  += $GPO }    \r\n                        $GPOUserObjects1 += $GPO\r\n                    }else{\r\n                        if($GPO.AppliesTo -eq \"Authenticated Users\"){ $GPOUserObjectsAuth  += $GPO }    \r\n                        $GPOUserObjects += $GPO\r\n                    }    \r\n                }#endregion User\r\n\r\n            #endregion Adding to array\r\n        \r\n        \r\n\r\n    } #endregion Mainloop\r\n\r\n#region Reporting\r\n\r\n    Write-Host \"--------------------------------------------------------------\"\r\n    Write-Host \"Found \" -No; Write-Host -f Yellow $GPOs.Count -No; Write-Host \" GPOs in the domain \" -No; Write-Host -f Yellow $DomainName \r\n    Write-Host \"--------------------------------------------------------------\"\r\n    Write-Host \"   All Policies:\"\r\n    Write-Host \"   ------------------\"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $DisabledGPOs.Count -No; Write-Host \" are completely disabled. \"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPOObjects0.Count -No; Write-Host \" have no groups they apply to. \"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPOObjects1.Count -No; Write-Host \" have 1 groups they apply to.\"\r\n    Write-Host \"       > \" -No; Write-Host -f Yellow $GPOObjectsAuth1.Count -No; Write-Host \" of these have the group. 'Authenticated users' \"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPOObjects.Count -No; Write-Host \" have multiple groups they apply to. \"\r\n    Write-Host \"       > \" -No; Write-Host -f Yellow $GPOObjectsAuth.Count -No; Write-Host \" of these have the group 'Authenticated users'. \"\r\n    Write-Host \"   ------------------\"\r\n    Write-Host \"   Computer Policies:\"\r\n    Write-Host \"   ------------------\"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPOCompObjects0.Count -No; Write-Host \" have no groups they apply to. \"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPOCompObjects1.Count -No; Write-Host \" have 1 groups they apply to. \"\r\n    Write-Host \"       > \" -No; Write-Host -f Yellow $GPOCompObjectsAuth1.Count -No; Write-Host \" of these have the group 'Authenticated users'. \"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPCompOObjects.Count -No; Write-Host \" have multiple groups they apply to. \"\r\n    Write-Host \"       > \" -No; Write-Host -f Yellow $GPOCompObjectsAuth.Count -No; Write-Host \" of these have the group 'Authenticated users'. \"\r\n    Write-Host \"    > \" -No; Write-Host -f Red $GPOCompObjectSetEmpty.Count -No; Write-Host \" don't have computer settings, yet have computer settings enabled.\"\r\n    Write-Host \"   ------------------\"\r\n    Write-Host \"   User Policies:\"\r\n    Write-Host \"   ------------------\"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPOUserObjects0.Count -No; Write-Host \" have no groups they apply to.\"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPOUserObjects1.Count -No; Write-Host \" have 1 groups they apply to.\"\r\n    Write-Host \"       > \" -No; Write-Host -f Yellow $GPOUserObjectsAuth1.Count -No; Write-Host \" of these have the group 'Authenticated users'.\"\r\n    Write-Host \"    > \" -No; Write-Host -f Yellow $GPOUserObjects.Count -No; Write-Host \" have multiple groups they apply to.\"\r\n    Write-Host \"       > \" -No; Write-Host -f Yellow $GPOUserObjectsAuth.Count -No; Write-Host \" of these have the group 'Authenticated users'. \"\r\n    Write-Host \"    > \" -No; Write-Host -f Red $GPOUserObjectSetEmpty.Count -No; Write-Host \" don't have user settings, yet have user settings enabled.\"\r\n    Write-Host \"   ------------------\"\r\n    Write-Host \"--------------------------------------------------------------\"\r\n    \r\n#endregion\r\n",
+    "description": "Retrieves every GPO in the domain and reports which are fully disabled, how many users/computers/groups each applies to, and which have empty User or Computer settings despite those settings being enabled.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-RecentUserReport",
+    "filename": "Get-RecentUserReport.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 57,
+    "content": "<#\r\n.SYNOPSIS\r\n    Splits members of an AD group into recently active vs. inactive users.\r\n.DESCRIPTION\r\n    Checks the last logon date of every member of a given AD group against a cutoff (in months) and exports active/inactive users to separate CSVs plus a summary text file.\r\n.NOTES\r\n    Author: Nout Geens\r\n#>\r\n\r\n$ADGroup = \"Users-nout-CXA\"\r\n$LatestLogonMonths = 3 #months\r\n$ExportLocation = \"c:\\temp\\\"\r\n$CustomerName = \"nout\"\r\n\r\n#Get the users\r\n$Users = Get-ADGroupMember $ADGroup -Recursive | Select-Object SamAccountName -ExpandProperty SamAccountName\r\n\r\n#Get today, x months ago\r\n$LatestLogonDate = (Get-Date).AddMonths(-($LatestLogonMonths))\r\n\r\n#Reset previous values, start the loop\r\n$ActiveUsers = @(); $InactiveUsers = @();\r\n\r\nforeach($User in $Users){\r\n    #Get more properties of the users\r\n    $User = Get-ADUser -Identity $User -Properties LastLogonDate, Enabled | Select-Object Name, SamAccountName, LastLogonDate, Enabled\r\n\r\n    #Check if they have logged in recently\r\n    if($User.LastLogonDate -gt $LatestLogonDate){\r\n           Write-Host $user.Name \" has recently logged on\"\r\n           $ActiveUsers += $User\r\n    }else{      \r\n           Write-Host $user.Name  -f Red \" has not recently logged on\"\r\n           $InactiveUsers += $User\r\n    }#End check\r\n}\r\n\r\n#Creating 3 files\r\n    #Active Users\r\n        $ActiveFile = $ExportLocation + $CustomerName + \"-ActiveUsers-\" + (Get-date -format \"yyyy-MM-dd.HH-mm\") +\".csv\"\r\n        $ActiveUsers | Sort-Object LastLogonDate | Export-Csv $ActiveFile -Force -NoTypeInformation\r\n\r\n    #Inactive Users\r\n        $InactiveFile = $ExportLocation + $CustomerName + \"-InactiveUsers-\" + (Get-date -format \"yyyy-MM-dd.HH-mm\") +\".csv\"\r\n        $InactiveUsers | Sort-Object LastLogonDate | Export-Csv $InactiveFile -Force -NoTypeInformation\r\n\r\n    #Summary\r\n        $SummaryFile = $ExportLocation + $CustomerName + \"-Summary-\" + (Get-date -format \"yyyy-MM-dd.HH-mm\") +\".txt\"\r\n\r\n        $Summary =@()\r\n\r\n        $Summary += \"This script was run for users logged in since \" + $LatestLogonDate +\" (\"+$LatestLogonMonths +\" months)\"\r\n        $Summary += \"The users were a member of \" +$ADGroup\r\n        $Summary += \"There are \" + $ActiveUsers.Count + \" active users, of which \" + (($ActiveUsers | Where-Object Enabled -EQ $false) | Measure-Object ).Count + \" is/are disabled. `n\"\r\n        $Summary += \"There are \" + $InactiveUsers.Count + \" inactive users, of which \" + (($InactiveUsers | Where-Object Enabled -EQ $false) | Measure-Object ).Count + \" is/are disabled. `n\"\r\n\r\n        $Summary | Out-File $SummaryFile -Force\r\n",
+    "description": "Checks the last logon date of every member of a given AD group against a cutoff (in months) and exports active/inactive users to separate CSVs plus a summary text file.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-Title",
+    "filename": "Get-Title.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 30,
+    "content": "<#\r\n.SYNOPSIS\r\n    Lists the distinct job titles used within an AD group.\r\n.DESCRIPTION\r\n    Retrieves every member of a given AD group and returns the unique set of \"title\" attribute values.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.1\r\n#>\r\n\r\n#Importing modules\r\nImport-Module ActiveDirectory\r\n\r\n#Declaration\r\n$Group = \"Users-Subgroup\"\r\n\r\n#Get the Users\r\n$Users = Get-ADGroupMember $Group | Select-Object SamAccountName\r\n\r\n#Clear the screen\r\nclear\r\n\r\n#foreach user\r\nForEach ($user in $Users){ \r\n    #Get the title, and add it to the list\r\n    $Titles += @(Get-ADUser -identity $user.SamAccountName -Properties title |Select-Object title -ExpandProperty title)\r\n}\r\n\r\n#List the Titles\r\n$Titles| Sort-Object -Unique\r\n",
+    "description": "Retrieves every member of a given AD group and returns the unique set of \"title\" attribute values.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-UsersWithLogonscripts",
+    "filename": "Get-UsersWithLogonscripts.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 44,
+    "content": "<#\r\n.SYNOPSIS\r\n    Counts AD users in a group that have a logon script configured.\r\n.DESCRIPTION\r\n    Checks every member of a given AD group for a configured logon script path and reports how many enabled vs. disabled users have one set.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.1\r\n#>\r\n\r\n#Declaration\r\n$Groupname =\"Domain Users\"\r\n\r\n#Filling in the blanks\r\n$Group = Get-ADGroup -Filter{name -eq $Groupname } |Select-Object name -ExpandProperty name\r\n$Users = Get-ADGroupMember $Group | Select-Object name, SamAccountName\r\n\r\n#Reseting values to be sure\r\n$Batcount = 0\r\n$BatcountDisabled = 0\r\n$Users = @()\r\n\r\n#foreach user\r\nforeach($User in $Users){\r\n    #Check if they have a logon script\r\n    if(Get-ADUser -Identity $User -properties scriptpath | Select-Object scriptpath -ExpandProperty scriptpath){\r\n        #Check if they are enabled\r\n        if(Get-ADUser -Identity $User | Select-Object Enabled -ExpandProperty Enabled){\r\n            #Enabled + Logonscript\r\n            Write-Host -ForegroundColor Yellow $User.name\"has a logon script\"    \r\n            $Batcount ++\r\n        }else{            \r\n            #Disabled + Logonscript\r\n            Write-Host -ForegroundColor DarkYellow $User.name\"has a logon script, But is disabled\"    \r\n            $BatcountDisabled ++\r\n        }\r\n    }\r\n}\r\n\r\n#Write your findings\r\nWrite-Host -ForegroundColor Gray \"------------------------------------------- \"\r\nWrite-Host -ForegroundColor Yellow \"---- There are\"$Batcount \"Active Logonscripts ---- \"\r\nWrite-Host -ForegroundColor Yellow \"---- There are\"$BatcountDisabled \"Disabled User Logonscripts ---- \"\r\nWrite-Host -ForegroundColor Gray \"------------------------------------------- \"",
+    "description": "Checks every member of a given AD group for a configured logon script path and reports how many enabled vs. disabled users have one set.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-vCard",
+    "filename": "Get-vCard.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 82,
+    "content": "<#\r\n.SYNOPSIS\r\n    Generates vCards (.vcf) for mobile import from an AD group.\r\n.DESCRIPTION\r\n    Reads every member of a given AD group and builds a vCard file per user from their AD attributes (name, title, address, mobile number, email).\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 2.0\r\n#>\r\n\r\n#Importing modules\r\n    Import-Module ActiveDirectory\r\n\r\n#Declaration\r\n    $Group = \"users-noutcorp\"\r\n    $Company = \"noutcorp\"\r\n    $Website = \"https://www.nootnoot.be\"\r\n    $vCardPath = \"C:\\temp\\vCards\" \r\n\r\n#Get The users\r\n    $Users = Get-ADGroupMember $Group\r\n\r\n#Today is the day\r\n    $date = get-date -UFormat \"%Y%m%d\"\r\n    $datetext = -join(\"REV:\",$date)\r\n\r\n#One for all, all for one\r\nForEach ($user in $Users){ \r\n    #Name\r\n    $FullName = \"FN:\" + $($user.Name)\r\n\r\n    $Givenname = get-ADUser -identity $($user) -Properties givenname|Select-Object givenname -ExpandProperty givenname\r\n    $Surname = get-ADUser -identity $($user) -Properties surname|Select-Object surname -ExpandProperty surname\r\n    $Name = -join(\"N;LANGUAGE=nl-be:\",$Surname,$Givenname)\r\n\r\n    #Organisation\r\n    $Organisation = \"ORG:\" +  $Company\r\n    $title =  Get-ADUser -identity $($user) -Properties title|Select-Object title -ExpandProperty title\r\n    $titleText = -join(\"TITLE:\",$title)\r\n    \r\n    #Address\r\n    $streetaddress = Get-ADUser -identity $($user) -Properties streetaddress|Select-Object streetaddress -ExpandProperty streetaddress\r\n    $post = Get-ADUser -identity $($user) -Properties postalcode |Select-Object postalcode -ExpandProperty postalcode\r\n    $city =  Get-ADUser -identity $($user) -Properties city |Select-Object city -ExpandProperty city\r\n    $country = \"Belgium\" #Get-ADUser -identity $($user) -Properties country |ft country -HideTableHeaders|Out-String\r\n    \r\n    $addresstext = -join(\"ADR;WORK;PREF:\",$streetadress,\" \",$post,\" \",$city,\" \",$country)\r\n\r\n    #Mobile Phone\r\n    $mobile = Get-ADUser -identity $($user) -Properties mobile|Select-Object mobile -ExpandProperty mobile\r\n    $mobiletext = -join(\"TEL;CELL;VOICE:\",$mobile)\r\n\r\n    #E-mail\r\n    $email = Get-ADUser -identity $($user) -Properties emailAddress|Select-Object emailAddress -ExpandProperty emailAddress\r\n    $emailtext = -join(\"EMAIL;PREF;INTERNET:\",$email)\r\n\r\n    #V-card Creation\r\n    $vCardFile = -join($Givenname,$Surname,\".vcf\")\r\n    $vCardName = $vCardPath + $vCardFile\r\n\r\n    #Test to see if vcard file already exists\r\n    $outputvCard = Test-Path $vCardName \r\n        If (!$outputvCard){\r\n         #if not then create the file\r\n         $outputvcard = New-Item -Path $vCardName -ItemType Folder -Force\r\n        }    \r\n\r\n    #Adding it to the vcard \r\n    Add-Content -Path $vCardPath -Value \"BEGIN:VCARD\"\r\n    Add-Content -Path $vCardPath -Value \"VERSION:2.1\"\r\n    Add-Content -Path $vCardPath -Value $Name\r\n    Add-Content -Path $vCardPath -Value $FullName\r\n    Add-Content -Path $vCardPath -Value $Organisation\r\n    Add-Content -Path $vCardPath -Value $titleText\r\n    Add-Content -Path $vCardPath -Value $mobiletext\r\n    Add-Content -Path $vCardPath -Value $addresstext \r\n    Add-Content -Path $vCardPath -Value $Website\r\n    Add-Content -Path $vCardPath -Value $emailtext\r\n    Add-Content -Path $vCardPath -Value $datetext\r\n    Add-Content -Path $vCardPath -Value \"END:VCARD\"\r\n     }\r\n\r\n",
+    "description": "Reads every member of a given AD group and builds a vCard file per user from their AD attributes (name, title, address, mobile number, email).",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Repair-ComputerDomainTrust",
+    "filename": "Repair-ComputerDomainTrust.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 55,
+    "content": "<#\r\n.SYNOPSIS\r\n    Tests and repairs the secure channel trust between a computer and the domain.\r\n.DESCRIPTION\r\n    Checks Test-ComputerSecureChannel and, if it fails, repairs it using a designated repair account against the local DC. Behavior branches by detected OS version.\r\n.NOTES\r\n    Author: Nout Geens\r\n#>\r\n#Declaration\r\n$DomainName = \"nout.local\"\r\n$LocalDC =\"SRVNOUT101\"\r\n$RepairAccountName = \"TempAdmin\"\r\n$RepairAccountPWD = \"SüperSecure123\"\r\n\r\n#Create the computer object\r\n$Computer = New-Object -TypeName PSCustomObject -ArgumentList @{Name = $env:COMPUTERNAME}\r\n$Computer | Add-Member -NotePropertyName OS -NotePropertyValue (Get-CimInstance -ClassName Win32_OperatingSystem |Select-Object Caption -ExpandProperty Caption)\r\n\r\n#Do different things depending on the OS\r\nSwitch($Computer.OS){\r\n    \"*Windows 10*\"{\r\n        #Creating the Secure credentials\r\n        #Convert the Pwd to secure string\r\n        [SecureString]$RepairAccountPWDSecure = ConvertTo-SecureString $RepairAccountPWD -AsPlainText -Force\r\n        #Create the Cred Object\r\n        [pscredential]$CredObject = New-Object System.Management.Automation.PSCredential ($RepairAccountName, $RepairAccountPWDSecure)\r\n\r\n        #Test the connection, if false, run the repair\r\n        \r\n        if(Test-ComputerSecureChannel){\r\n            #The Test Succeeded, the Computer account is ok\r\n            Write-Host \"The Test Succeeded, the Computer account is ok\"\r\n            $Computer | Add-Member -NotePropertyName \"ADAuthenticated\" -NotePropertyValue $true -Force\r\n        }\r\n\r\n        Else{\r\n            #The Test Failed, the Computer account is not ok!\r\n            Write-Host \"The Test Failed, Starting the repair..\"\r\n            Test-ComputerSecureChannel -Repair -Server ($LocalDC +\".\"+ $DomainName) -Credential $CredObject -ErrorAction SilentlyContinue\r\n            \r\n            if(Test-ComputerSecureChannel){\r\n                Write-Host \"Repaired the computer object\"\r\n            }else{Write-Host \"Repair Failed!\"}\r\n        }\r\n    Break;}\r\n\r\n    \"*Windows 8*\"{\r\n    \r\n    Break;}\r\n\r\n    \"*Windows 7*\"{\r\n    \r\n    Break;}\r\n\r\n}\r\n",
+    "description": "Checks Test-ComputerSecureChannel and, if it fails, repairs it using a designated repair account against the local DC. Behavior branches by detected OS version.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Reset-ADPasswords-CSV",
+    "filename": "Reset-ADPasswords-CSV.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 43,
+    "content": "<#\r\n.SYNOPSIS\r\n    Bulk-resets AD user passwords from a CSV file.\r\n.DESCRIPTION\r\n    Reads a CSV (Name, Type, Password) and resets each listed user's password, prompting for confirmation before each reset. Reminds you to delete the plaintext CSV afterwards.\r\n.NOTES\r\n    Author: Nout Geens\r\n    Version: 1.0\r\n.EXAMPLE\r\n    CSV format: Name, Type, Password\r\n    \"Nout Geens\", \"User\", \"SeCuére\"\r\n#>\r\n\r\nImport-Module ActiveDirectory\r\n\r\n#Declaration\r\n$File = \"C:\\Temp\\PASS.csv\"\r\n$List = Import-Csv $File\r\n$DeleteFile = \"no\" #This deletes the File when the script ends\r\n\r\n#Looping\r\nforeach($Item in $List){\r\n\r\n    #Idiot Proofing, that includes me\r\n    Write-Host -BackgroundColor Black -ForegroundColor Yellow \"Resetting\" $List.Count \"Passwords, are you sure? [Y/N]\"\r\n    $Answer = Read-Host \r\n\r\n    #if you are REAALLLLYY sure\r\n    if($Answer -eq \"y\" -or $Answer -eq \"Y\"){\r\n        $Password = ConvertTo-SecureString $Item.Password -AsPlainText -Force\r\n        $User = Get-ADUser -filter * | Where-Object Name -EQ $Item.Name\r\n        Set-ADAccountPassword -Identity $User.SamAccountName -reset -NewPassword $Password\r\n        Write-Host -BackgroundColor Black -ForegroundColor Green \"Changed\"$user.Name \"'s Password\"\r\n    }\r\n}\r\n\r\n#Don't Leave plain text passwords\r\n$List = \"\"\r\n$Item = \"\"\r\n\r\nif($DeleteFile -eq \"yes\"){Remove-Item $File}\r\nelse{ Write-Host -BackgroundColor Black -ForegroundColor Red \"Manualy Delete the plaintext file please!\"}\r\n\r\n",
+    "description": "Reads a CSV (Name, Type, Password) and resets each listed user's password, prompting for confirmation before each reset. Reminds you to delete the plaintext CSV afterwards.",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "out-vCard",
+    "filename": "out-vCard.ps1",
+    "category": "AD",
+    "lang": "powershell",
+    "loc": 56,
+    "content": "<#\r\n.SYNOPSIS\r\n    Converts an Outlook contacts CSV export into individual vCard (.vcf) files.\r\n.DESCRIPTION\r\n    Reads a CSV of Outlook contacts (Dutch column headers) and writes one .vcf file per contact.\r\n.NOTES\r\n    Original Author: dmitrysotnikov\r\n    Editor: Nout Geens\r\n    Version: 2.0\r\n.EXAMPLE\r\n    Go to Outlook, Contacts > Ctrl-A > Open / Open & Export > Export to file > Comma Separated Values > save the CSV\r\n    Out-vCard -CSVFile \"c:\\temp\\list.csv\" -OutPath \"c:\\temp\\putthemhere\\\" -Delimiter \",\"\r\n#>\r\n\r\n#Info: Works only with the Dutch version of Outlook's export\r\n\r\n\r\n\r\nfunction Out-vCard {\r\n    param(\r\n        [String]$CSVFile = \"C:\\temp\\Contacten.CSV\",\r\n        [String]$OutPath = \"C:\\temp\\\",\r\n        [String]$Delimiter = ','\r\n    )\r\n\r\n    #Import the data\r\n    $Data = Import-Csv $CSVFile -Delimiter $Delimiter\r\n\r\n    $i = 0\r\n\r\n    #Loop the contacts in the data\r\n    foreach($Contact in $Data){\r\n        #Create a filename, Since not all values are filled properly, Create a custom name\r\n        $Filename = \"Contact-\" + $i +\".vcf\"\r\n        $FullFilename = $OutPath + $Filename\r\n\r\n        #Dutch Version:\r\n        New-Item -Path $FullFilename\r\n        Add-Content -path $FullFilename \"BEGIN:VCARD\"\r\n        Add-Content -path $FullFilename \"VERSION:2.1\"\r\n        Add-Content -path $FullFilename (\"N:\" + $Contact.Achternaam+ \";\" + $Contact.Voornaam)\r\n        Add-Content -path $FullFilename (\"FN:\" + $Contact.Voornaam + \" \" + $Contact.Achternaam)\r\n        Add-Content -path $FullFilename (\"ORG:\" + $Contact.Bedrijf)\r\n        Add-Content -path $FullFilename (\"TITLE:\" + $Contact.Functie)\r\n        Add-Content -path $FullFilename (\"TEL;WORK;VOICE:\" + $Contact.'Telefoon op werk')\r\n        Add-Content -path $FullFilename (\"TEL;HOME;VOICE:\" + $Contact.'Telefoon thuis')\r\n        Add-Content -path $FullFilename (\"TEL;CELL;VOICE:\" + $Contact.'Mobiele telefoon')\r\n        Add-Content -path $FullFilename (\"TEL;WORK;FAX:\" + $Contact.'Fax op werk')\r\n        Add-Content -path $FullFilename (\"ADR;WORK;PREF:\" + \";;\" + $Contact.'Werkadres, straat' + \";\" + $Contact.'Werkadres, postcode' + \" \" + $contact.'Werkadres, plaats' + \"; ;;\" + $Contact.'Land/regio (werk)')\r\n        Add-Content -path $FullFilename (\"URL;WORK:\" + $Contact.Webpagina)\r\n        Add-Content -path $FullFilename (\"EMAIL;PREF;INTERNET:\" + $Contact.'E-mailadres')\r\n        Add-Content -path $FullFilename \"END:VCARD\"\r\n\r\n        $i++\r\n    }\r\n}",
+    "description": "Reads a CSV of Outlook contacts (Dutch column headers) and writes one .vcf file per contact.",
+    "creator": "Nout Geens (edit of dmitrysotnikov)"
+  },
+  {
+    "title": "Clear-EID-Certificates",
+    "filename": "Clear-EID-Certificates.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 10,
+    "content": "\r\n\t$Folder = \"Cert:\\CurrentUser\\My\\\"\r\n\t$SubjectFilter = \"SERIALNUMBER*\"\r\n\t$Exclusion = \"*G=firstname, SN=lastname*\"\r\n\r\n\tforeach($Cert in (Get-childitem $Folder | Where-Object {($_.Subject -NotLike $Exclusion) -and ($_.Subject -Like $SubjectFilter)})){\r\n\t\tWrite-Host \"Removing File: \" $Cert.Subject.Substring(($cert.Subject.IndexOf(\",\") +2),($Cert.Subject.length - $cert.Subject.IndexOf(\",\") -2))\r\n\t\tRemove-Item -Path $Cert.PSPath\r\n\t}\r\n\r\n",
+    "preview_line": "$Folder = \"Cert:\\CurrentUser\\My\\\""
+  },
+  {
+    "title": "Convert-CSV-To-Excel",
+    "filename": "Convert-CSV-To-Excel.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 30,
+    "content": "function Convert-CSV-To-Excel {\r\nparam (\r\n        [String]$Csv, #Location of the source file\r\n        [String]$Xlsx, #Desired location of output  \r\n        [String]$Delimiter = \";\" #Specify the delimiter used in the file\r\n     )\r\n\r\n# Create a new Excel workbook with one empty sheet\r\n    $Excel = New-Object -ComObject excel.application \r\n    $Workbook = $Excel.Workbooks.Add(1)\r\n    $Worksheet = $Workbook.worksheets.Item(1)\r\n\r\n# Build the QueryTables.Add command and reformat the data\r\n    $TxtConnector = (\"TEXT;\" + $Csv)\r\n    $Connector = $Worksheet.QueryTables.add($TxtConnector,$Worksheet.Range(\"A1\"))\r\n    $Query = $Worksheet.QueryTables.item($Connector.name)\r\n    $Query.TextFileOtherDelimiter = $Delimiter\r\n    $Query.TextFileParseType  = 1\r\n    $Query.TextFileColumnDataTypes = ,1 * $Worksheet.Cells.Columns.Count\r\n    $Query.AdjustColumnWidth = 1\r\n\r\n# Execute & delete the import query\r\n    $Query.Refresh()\r\n    $Query.Delete()\r\n\r\n# Save & close the Workbook as XLSX.\r\n    $Workbook.SaveAs($Xlsx,51)\r\n    $Excel.Quit()\r\n\r\n}",
+    "preview_line": "function Convert-CSV-To-Excel {"
+  },
+  {
+    "title": "Convert-CSV-To-Excel.1.1",
+    "filename": "Convert-CSV-To-Excel.1.1.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 84,
+    "content": "Function ConvertCSVTo-XSLS{\r\n#Version: 1.1\r\n#Changes: 1.1 Now with error logs\r\n#Purpose: Convert one or multiple CSV files into one XSLX File\r\n\r\n    Param(\r\n        [Parameter(Mandatory=$true)][String]$CSV = \"C:\\temp\\input.csv\",\r\n        [String]$ExportFile = ($CSV.replace(\".csv\",\".xlsx\")),\r\n        [String]$Delimiter = $Excel.Application.International(5),\r\n        [Boolean]$AddPage = $False,\r\n        [Boolean]$Overwrite = $False\r\n        )\r\n\r\n    Try{\r\n        # Create a new Excel Workbook with one empty sheet\r\n            Write-Host \"Creating new Excel Sheet...\"\r\n            $Excel = New-Object -ComObject excel.application -ErrorAction Stop\r\n            $Workbook = $Excel.Workbooks.Add(1)\r\n            $Worksheet = $Workbook.worksheets.Item(1)\r\n\r\n    } Catch{\r\n        Throw \"ERROR001 - Failed to use Excel functions, is it installed?\" \r\n    }\r\n\r\n    Try{\r\n        # Build the Querry to convert it to XLSX\r\n            Write-Host \"Building Conversion Querry...\"\r\n            $TxtConnector = (\"TEXT;\" + $CSV)\r\n            $Connector = $worksheet.QueryTables.add($TxtConnector,$worksheet.Range(\"A1\"))\r\n            $Query = $worksheet.QueryTables.item($Connector.name)   \r\n    } Catch{\r\n        Throw \"ERROR002 - Failed to build Querry, is the CSV file ok?\" \r\n    }\r\n\r\n    Try{\r\n        # Set the delimiter (, or ;) according to your regional settings\r\n            Write-Host \"Setting Delimiter to '$Delimiter'\"\r\n            $Query.TextFileOtherDelimiter = $Delimiter        \r\n    } Catch{\r\n        Throw \"ERROR003 - Something strange happend to the delimiter.\" \r\n    }\r\n\r\n    Try{\r\n        # Set the format to delimited and text for every column\r\n        # A trick to create an array of 2s is used with the preceding comma\r\n            $Query.TextFileParseType  = 1\r\n            $Query.TextFileColumnDataTypes = ,2 * $Worksheet.Cells.Columns.Count\r\n            $Query.AdjustColumnWidth = 1\r\n    } Catch{\r\n        Throw \"ERROR004 - Something happend while converting setting the format\" \r\n    }\r\n\r\n    try{\r\n        # Execute & delete the import query\r\n            Write-Host \"Converting... \"\r\n            $Query.Refresh() | out-null\r\n\r\n            Write-Host \"Cleaning up Querry...\"\r\n            $Query.Delete() \r\n    } Catch{\r\n        Throw \"ERROR005 - Something strange happend while converting\" \r\n    }\r\n\r\n    Try{\r\n        # Overwrite the file?\r\n        if($Overwrite){\r\n            $Excel.DisplayAlerts = $false;\r\n        }else{\r\n            $Excel.DisplayAlerts = $true;\r\n        }\r\n    }Catch{\r\n         Throw \"ERROR006 - Failed to Set displayalerts.\" \r\n    }\r\n    Try{\r\n        # Save & close the Workbook as XLSX. Change the output extension for Excel 2003\r\n        Write-Host \"Saving ...\"\r\n        $Workbook.SaveAs($ExportFile,51)\r\n\r\n        Write-Host \"Closing Excel...\"\r\n        $Excel.Quit()\r\n    } Catch{\r\n        Throw \"ERROR007 - Something went wrong trying to save\" \r\n    }\r\n}",
+    "preview_line": "Function ConvertCSVTo-XSLS{"
+  },
+  {
+    "title": "Countdown",
+    "filename": "Countdown.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 25,
+    "content": "$StartTime = \"8:30:00\"\r\n$Endtime = \"17:00:00\"\r\n$Freedom = $false\r\n\r\n$EndOfDay = Get-date -Hour ($Endtime.Split(\":\"))[0] -Minute ($Endtime.Split(\":\"))[1] -Second ($Endtime.Split(\":\"))[2]\r\n$StartOfDay = Get-date -Hour ($StartTime.Split(\":\"))[0] -Minute ($Endtime.Split(\":\"))[1] -Second ($Endtime.Split(\":\"))[2]\r\n$Workday = New-TimeSpan -Start $StartOfDay -End $EndOfDay\r\n\r\nWhile($Freedom -ne $True){\r\nClear\r\n    $Now = Get-Date -Format HH:mm:ss\r\n    $TimeRemaining = New-TimeSpan -Start $Now -End $Endtime\r\n\r\n    $TimeDone = ($Workday - $TimeRemaining)\r\n    $Procent = [Math]::Round(($Timedone.TotalHours /$Workday.TotalHours *100),0)\r\n    if($TimeRemaining.TotalHours -le 0){\r\n        $Freedom = $True\r\n        Write-Progress -Activity \"Working\" -Status \"Time's Up!\"\r\n    }else{\r\n        Write-Progress -Activity \"Working\" -Status (\"You still have some time left! \" + $TimeRemaining.Hours + \" hours, \" + $TimeRemaining.Minutes  + \" minutes and \" + $TimeRemaining.Seconds + \" seconds.\")\r\n    }\r\n\r\n   Start-Sleep -Seconds 5\r\n}\r\n\r\n",
+    "preview_line": "$StartTime = \"8:30:00\""
+  },
+  {
+    "title": "Get-Bluescreen",
+    "filename": "Get-Bluescreen.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 34,
+    "content": "#Requires:\r\n. '.\\New-WPFMessageBox.ps1'\r\n\r\nAdd-Type -AssemblyName presentationframework, presentationcore\r\n\r\n$Source = \"https://i.imgur.com/igf204x.png\"\r\n$Image = New-Object System.Windows.Controls.Image\r\n$Image.Source = $Source\r\n$Image.Height = 201 /2\r\n$Image.Width = 321 /2\r\n  \r\n$StackPanel = New-Object System.Windows.Controls.StackPanel\r\n$StackPanel.AddChild($Image)\r\n\r\n\r\n$TextBlock = New-Object System.Windows.Controls.Label\r\n$TextBlock.Content = \"\r\nThis PC ran into a problem!\r\n\r\nHave you tried turning it off and on again?\r\n\r\n0x80051337\"\r\n\r\n$TextBlock.FontSize = \"18\"\r\n$TextBlock.HorizontalAlignment = \"Center\"\r\n$TextBlock.FontFamily = 'Verdana'\r\n$TextBlock.Foreground = 'white'\r\n$StackPanel.AddChild($TextBlock)\r\n$StackPanel.Margin = \"10,0,10,0\"\r\n\r\nNew-WPFMessageBox $StackPanel `\r\n    -Title \":(\" -TitleBackground \"SteelBlue\" -TitleFontSize 80 -TitleTextForeground \"White\"`\r\n    -ContentBackground \"SteelBlue\" -ContentTextForeground \"White\"  `\r\n    -ButtonType OK -ButtonTextForeground 'White'\r\n",
+    "preview_line": ". '.\\New-WPFMessageBox.ps1'"
+  },
+  {
+    "title": "Get-Bluescreen-w7",
+    "filename": "Get-Bluescreen-w7.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 48,
+    "content": "$Text = @'\r\nA problem has been detected and Windows has been shut down to prevent damage \r\nto your computer.\r\n\r\nCRITICAL_SERVICE_FAILED\r\n\r\nIf this is the first time you've seen this Stop error screen, \r\nrestart your computer. If this screen appears again, follow\r\nthese steps:\r\n\r\nCheck to make sure any new hardware or software is properly installed.\r\nIf this is a new installation, ask your hardware or software manufacturer\r\nfor any Windows updates you might need.\r\n\r\nIf problems continue, disable or remove any newly installed hardware \r\nor software. Disable BIOS memory options such as caching or shadowing.\r\nIf you need to use Safe Mode to remove or disable components, restart\r\nyour computer, press F8 to select Advanced Startup Options, and then\r\nselect Safe Mode.\r\n\r\nTechnical Information:\r\n\r\n*** STOP: 0x0000005A (0x00000001, 0x00000001, 0x00000000, 0x00000000)\r\n\r\nCollecting data for crash dump ...\r\nInitializing disk for crash dump ...\r\nBeginning dump for physical memory.\r\nDumping physical memory to disk: 100\r\nPhysical memory dump complete.\r\nContact your system admin or technical support group for further assistance.\r\n'@\r\nAdd-Type -AssemblyName System.Windows.Forms\r\n\r\n$Label = New-Object System.Windows.Forms.Label\r\n$Label.TabIndex = 1\r\n$Label.Text = $Text\r\n$Label.ForeColor = 'White'\r\n$Label.AutoSize = $True\r\n$Label.Font = \"Lucida Console, 16pt, style=Regular\"\r\n$Label.Location = '0, 30'\r\n\r\n$Form = New-Object system.Windows.Forms.Form\r\n$Form.Controls.Add($Label)\r\n$Form.WindowState = 'Maximized'\r\n$Form.FormBorderStyle = 'None'\r\n$Form.BackColor = \"#000080\"\r\n$Form.Cursor=[System.Windows.Forms.Cursors]::WaitCursor\r\n$Form.ShowDialog()",
+    "preview_line": "$Text = @'"
+  },
+  {
+    "title": "Get-DefaultBrowser",
+    "filename": "Get-DefaultBrowser.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 38,
+    "content": "#Declaration\r\n$Username = \"nout\"\r\n$ComputerName = \"localhost\"\r\n\r\n#Imports\r\nImport-module ActiveDirectory\r\n\r\n#Script\r\n$SID = (Get-ADUser $Username | Select-Object SID -ExpandProperty SID).Value\r\n\r\n#Create The Regkeys\r\n$Regkeys = (\r\n    \"Registry::HKEY_USERS\\$SID\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.htm\\UserChoice\\\",\r\n    \"Registry::HKEY_USERS\\$SID\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.html\\UserChoice\\\",\r\n    \"Registry::HKEY_USERS\\$SID\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\https\\UserChoice\\\",\r\n    \"Registry::HKEY_USERS\\$SID\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice\\\" \r\n)\r\n\r\n#Create and fill the object\r\n$DefaultBrowser = New-Object -TypeName PSObject\r\n\r\n    $DefaultBrowser | Add-Member -NotePropertyName \"HTM Files\" -NotePropertyValue (`\r\n        Invoke-Command -ComputerName $ComputerName -ScriptBlock {`\r\n            Get-ItemProperty -Path $Using:Regkeys[0] | Select-Object ProgId -ExpandProperty ProgId}) #HTM\r\n\r\n    $DefaultBrowser | Add-Member -NotePropertyName \"HTML Files\" -NotePropertyValue (`\r\n        Invoke-Command -ComputerName $ComputerName -ScriptBlock {`\r\n            Get-ItemProperty -Path $Using:Regkeys[1] | Select-Object ProgId -ExpandProperty ProgId}) #HTML\r\n\r\n    $DefaultBrowser | Add-Member -NotePropertyName \"Https Links\" -NotePropertyValue (`\r\n        Invoke-Command -ComputerName $ComputerName -ScriptBlock {`\r\n            Get-ItemProperty -Path $Using:Regkeys[2] | Select-Object ProgId -ExpandProperty ProgId}) #HTTPS\r\n\r\n    $DefaultBrowser | Add-Member -NotePropertyName \"Http Links\" -NotePropertyValue (`\r\n        Invoke-Command -ComputerName $ComputerName -ScriptBlock {`\r\n            Get-ItemProperty -Path $Using:Regkeys[3] | Select-Object ProgId -ExpandProperty ProgId}) #HTTP\r\n\r\n$DefaultBrowser\r\n",
+    "preview_line": "$Username = \"nout\""
+  },
+  {
+    "title": "Get-Fonts",
+    "filename": "Get-Fonts.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 7,
+    "content": "#List installed Font Families\r\n#Don't remember where i got this\r\n\r\n[System.Reflection.Assembly]::LoadWithPartialName(\"System.Drawing\")\r\n$Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families \r\n$Fonts | Format-Table -AutoSize\r\nWrite-Host \"You have \" -NoNewline ; Write-Host -f Yellow $Fonts.Count -NoNewline ; Write-Host \" fonts installed.\"\r\n",
+    "preview_line": "[System.Reflection.Assembly]::LoadWithPartialName(\"System.Drawing\")"
+  },
+  {
+    "title": "Get-Fruitfact",
+    "filename": "Get-Fruitfact.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 15,
+    "content": "$MaxFruit = 6\r\n$ID = Get-Random -Minimum 1 -Maximum $MaxFruit\r\n\r\nAdd-Type -AssemblyName System.Speech \r\n$Speak = New-Object System.Speech.Synthesis.SpeechSynthesizer\r\n$Fruit = (Invoke-WebRequest https://www.fruityvice.com/api/fruit/$ID).content | ConvertFrom-Json\r\r\r$Speak.Speak((\"Did you know this about the \" + $Fruit.name + \"?\")) \r$Speak.Speak((\"The \"+ $Fruit.name +\"'s official name is \" +$Fruit.genus `\r    + $Fruit.family + \". It provides \" +$Fruit.nutritions.calories + \" Calories, In 100 Grams,\" `\r    + $Fruit.nutritions.sugar + \"% is Sugar, \" `\r    + $Fruit.nutritions.carbohydrates + \"% are carbohydrates, \" `\r    + $Fruit.nutritions.Fat + \"% is fat and it has \"`\r    + $Fruit.nutritions.protein + \"% worth of Proteins.\"))\r",
+    "preview_line": "$MaxFruit = 6"
+  },
+  {
+    "title": "New-WPFMessageBox",
+    "filename": "New-WPFMessageBox.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 486,
+    "content": "Function New-WPFMessageBox {\r\n    # Created by Mark, what a legend.\r\n    # For examples for use, see his blog:\r\n    # https://smsagent.wordpress.com/2017/08/24/a-customisable-wpf-messagebox-for-powershell/\r\n    \r\n    # CHANGES\r\n    # 2017-09-11 - Added some required assemblies in the dynamic parameters to avoid errors when run from the PS console host.\r\n    \r\n    # Define Parameters\r\n    [CmdletBinding()]\r\n    Param\r\n    (\r\n        # The popup Content\r\n        [Parameter(Mandatory=$True,Position=0)]\r\n        [Object]$Content,\r\n\r\n        # The window title\r\n        [Parameter(Mandatory=$false,Position=1)]\r\n        [string]$Title,\r\n\r\n        # The buttons to add\r\n        [Parameter(Mandatory=$false,Position=2)]\r\n        [ValidateSet('OK','OK-Cancel','Abort-Retry-Ignore','Yes-No-Cancel','Yes-No','Retry-Cancel','Cancel-TryAgain-Continue','None')]\r\n        [array]$ButtonType = 'OK',\r\n\r\n        # The buttons to add\r\n        [Parameter(Mandatory=$false,Position=3)]\r\n        [array]$CustomButtons,\r\n\r\n        # Content font size\r\n        [Parameter(Mandatory=$false,Position=4)]\r\n        [int]$ContentFontSize = 14,\r\n\r\n        # Title font size\r\n        [Parameter(Mandatory=$false,Position=5)]\r\n        [int]$TitleFontSize = 14,\r\n\r\n        # BorderThickness\r\n        [Parameter(Mandatory=$false,Position=6)]\r\n        [int]$BorderThickness = 0,\r\n\r\n        # CornerRadius\r\n        [Parameter(Mandatory=$false,Position=7)]\r\n        [int]$CornerRadius = 2,\r\n\r\n        # ShadowDepth\r\n        [Parameter(Mandatory=$false,Position=8)]\r\n        [int]$ShadowDepth = 2,\r\n\r\n        # BlurRadius\r\n        [Parameter(Mandatory=$false,Position=9)]\r\n        [int]$BlurRadius = 10,\r\n\r\n        # WindowHost\r\n        [Parameter(Mandatory=$false,Position=10)]\r\n        [object]$WindowHost,\r\n\r\n        # Timeout in seconds,\r\n        [Parameter(Mandatory=$false,Position=11)]\r\n        [int]$Timeout,\r\n\r\n        # Code for Window Loaded event,\r\n        [Parameter(Mandatory=$false,Position=12)]\r\n        [scriptblock]$OnLoaded,\r\n\r\n        # Code for Window Closed event,\r\n        [Parameter(Mandatory=$false,Position=13)]\r\n        [scriptblock]$OnClosed\r\n\r\n    )\r\n\r\n    # Dynamically Populated parameters\r\n    DynamicParam {\r\n        \r\n        # Add assemblies for use in PS Console \r\n        Add-Type -AssemblyName System.Drawing, PresentationCore\r\n        \r\n        # ContentBackground\r\n        $ContentBackground = 'ContentBackground'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary\r\n        $arrSet = [System.Drawing.Brushes] | Get-Member -Static -MemberType Property | Select -ExpandProperty Name \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $PSBoundParameters.ContentBackground = \"White\"\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ContentBackground, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($ContentBackground, $RuntimeParameter)\r\n        \r\n\r\n        # FontFamily\r\n        $FontFamily = 'FontFamily'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute)  \r\n        $arrSet = [System.Drawing.FontFamily]::Families.Name | Select -Skip 1 \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)\r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($FontFamily, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($FontFamily, $RuntimeParameter)\r\n        $PSBoundParameters.FontFamily = \"Segoe UI\"\r\n\r\n        # TitleFontWeight\r\n        $TitleFontWeight = 'TitleFontWeight'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $arrSet = [System.Windows.FontWeights] | Get-Member -Static -MemberType Property | Select -ExpandProperty Name \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $PSBoundParameters.TitleFontWeight = \"Normal\"\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($TitleFontWeight, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($TitleFontWeight, $RuntimeParameter)\r\n\r\n        # ContentFontWeight\r\n        $ContentFontWeight = 'ContentFontWeight'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $arrSet = [System.Windows.FontWeights] | Get-Member -Static -MemberType Property | Select -ExpandProperty Name \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $PSBoundParameters.ContentFontWeight = \"Normal\"\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ContentFontWeight, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($ContentFontWeight, $RuntimeParameter)\r\n        \r\n\r\n        # ContentTextForeground\r\n        $ContentTextForeground = 'ContentTextForeground'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $arrSet = [System.Drawing.Brushes] | Get-Member -Static -MemberType Property | Select -ExpandProperty Name \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $PSBoundParameters.ContentTextForeground = \"White\"\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ContentTextForeground, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($ContentTextForeground, $RuntimeParameter)\r\n\r\n        # TitleTextForeground\r\n        $TitleTextForeground = 'TitleTextForeground'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $arrSet = [System.Drawing.Brushes] | Get-Member -Static -MemberType Property | Select -ExpandProperty Name \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $PSBoundParameters.TitleTextForeground = \"Black\"\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($TitleTextForeground, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($TitleTextForeground, $RuntimeParameter)\r\n\r\n        # BorderBrush\r\n        $BorderBrush = 'BorderBrush'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $arrSet = [System.Drawing.Brushes] | Get-Member -Static -MemberType Property | Select -ExpandProperty Name \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $PSBoundParameters.BorderBrush = \"Black\"\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($BorderBrush, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($BorderBrush, $RuntimeParameter)\r\n\r\n\r\n        # TitleBackground\r\n        $TitleBackground = 'TitleBackground'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $arrSet = [System.Drawing.Brushes] | Get-Member -Static -MemberType Property | Select -ExpandProperty Name \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $PSBoundParameters.TitleBackground = \"White\"\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($TitleBackground, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($TitleBackground, $RuntimeParameter)\r\n\r\n        # ButtonTextForeground\r\n        $ButtonTextForeground = 'ButtonTextForeground'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $arrSet = [System.Drawing.Brushes] | Get-Member -Static -MemberType Property | Select -ExpandProperty Name \r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $PSBoundParameters.ButtonTextForeground = \"Black\"\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ButtonTextForeground, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($ButtonTextForeground, $RuntimeParameter)\r\n\r\n        # Sound\r\n        $Sound = 'Sound'\r\n        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]\r\n        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute\r\n        $ParameterAttribute.Mandatory = $False\r\n        #$ParameterAttribute.Position = 14\r\n        $AttributeCollection.Add($ParameterAttribute) \r\n        $arrSet = (Get-ChildItem \"$env:SystemDrive\\Windows\\Media\" -Filter Windows* | Select -ExpandProperty Name).Replace('.wav','')\r\n        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    \r\n        $AttributeCollection.Add($ValidateSetAttribute)\r\n        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($Sound, [string], $AttributeCollection)\r\n        $RuntimeParameterDictionary.Add($Sound, $RuntimeParameter)\r\n\r\n        return $RuntimeParameterDictionary\r\n    }\r\n\r\n    Begin {\r\n        Add-Type -AssemblyName PresentationFramework\r\n    }\r\n    \r\n    Process {\r\n\r\n# Define the XAML markup\r\n[XML]$Xaml = @\"\r\n<Window \r\n        xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"\r\n        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"\r\n        x:Name=\"Window\" Title=\"\" SizeToContent=\"WidthAndHeight\" WindowStartupLocation=\"CenterScreen\" WindowStyle=\"None\" ResizeMode=\"NoResize\" AllowsTransparency=\"True\" Background=\"Transparent\" Opacity=\"1\">\r\n    <Window.Resources>\r\n        <Style TargetType=\"{x:Type Button}\">\r\n            <Setter Property=\"Template\">\r\n                <Setter.Value>\r\n                    <ControlTemplate TargetType=\"Button\">\r\n                        <Border>\r\n                            <Grid Background=\"{TemplateBinding Background}\">\r\n                                <ContentPresenter />\r\n                            </Grid>\r\n                        </Border>\r\n                    </ControlTemplate>\r\n                </Setter.Value>\r\n            </Setter>\r\n        </Style>\r\n    </Window.Resources>\r\n    <Border x:Name=\"MainBorder\" Margin=\"10\" CornerRadius=\"$CornerRadius\" BorderThickness=\"$BorderThickness\" BorderBrush=\"$($PSBoundParameters.BorderBrush)\" Padding=\"0\" >\r\n        <Border.Effect>\r\n            <DropShadowEffect x:Name=\"DSE\" Color=\"Black\" Direction=\"270\" BlurRadius=\"$BlurRadius\" ShadowDepth=\"$ShadowDepth\" Opacity=\"0.6\" />\r\n        </Border.Effect>\r\n        <Border.Triggers>\r\n            <EventTrigger RoutedEvent=\"Window.Loaded\">\r\n                <BeginStoryboard>\r\n                    <Storyboard>\r\n                        <DoubleAnimation Storyboard.TargetName=\"DSE\" Storyboard.TargetProperty=\"ShadowDepth\" From=\"0\" To=\"$ShadowDepth\" Duration=\"0:0:1\" AutoReverse=\"False\" />\r\n                        <DoubleAnimation Storyboard.TargetName=\"DSE\" Storyboard.TargetProperty=\"BlurRadius\" From=\"0\" To=\"$BlurRadius\" Duration=\"0:0:1\" AutoReverse=\"False\" />\r\n                    </Storyboard>\r\n                </BeginStoryboard>\r\n            </EventTrigger>\r\n        </Border.Triggers>\r\n        <Grid >\r\n            <Border Name=\"Mask\" CornerRadius=\"$CornerRadius\" Background=\"$($PSBoundParameters.ContentBackground)\" />\r\n            <Grid x:Name=\"Grid\" Background=\"$($PSBoundParameters.ContentBackground)\">\r\n                <Grid.OpacityMask>\r\n                    <VisualBrush Visual=\"{Binding ElementName=Mask}\"/>\r\n                </Grid.OpacityMask>\r\n                <StackPanel Name=\"StackPanel\" >                   \r\n                    <TextBox Name=\"TitleBar\" IsReadOnly=\"True\" IsHitTestVisible=\"False\" Text=\"$Title\" Padding=\"10\" FontFamily=\"$($PSBoundParameters.FontFamily)\" FontSize=\"$TitleFontSize\" Foreground=\"$($PSBoundParameters.TitleTextForeground)\" FontWeight=\"$($PSBoundParameters.TitleFontWeight)\" Background=\"$($PSBoundParameters.TitleBackground)\" HorizontalAlignment=\"Stretch\" VerticalAlignment=\"Center\" Width=\"Auto\" HorizontalContentAlignment=\"Center\" BorderThickness=\"0\"/>\r\n                    <DockPanel Name=\"ContentHost\" Margin=\"0,10,0,10\"  >\r\n                    </DockPanel>\r\n                    <DockPanel Name=\"ButtonHost\" LastChildFill=\"False\" HorizontalAlignment=\"Center\" >\r\n                    </DockPanel>\r\n                </StackPanel>\r\n            </Grid>\r\n        </Grid>\r\n    </Border>\r\n</Window>\r\n\"@\r\n\r\n[XML]$ButtonXaml = @\"\r\n<Button xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" Width=\"Auto\" Height=\"30\" FontFamily=\"Segui\" FontSize=\"16\" Background=\"Transparent\" Foreground=\"White\" BorderThickness=\"1\" Margin=\"10\" Padding=\"20,0,20,0\" HorizontalAlignment=\"Right\" Cursor=\"Hand\"/>\r\n\"@\r\n\r\n[XML]$ButtonTextXaml = @\"\r\n<TextBlock xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" FontFamily=\"$($PSBoundParameters.FontFamily)\" FontSize=\"16\" Background=\"Transparent\" Foreground=\"$($PSBoundParameters.ButtonTextForeground)\" Padding=\"20,5,20,5\" HorizontalAlignment=\"Center\" VerticalAlignment=\"Center\"/>\r\n\"@\r\n\r\n[XML]$ContentTextXaml = @\"\r\n<TextBlock xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" Text=\"$Content\" Foreground=\"$($PSBoundParameters.ContentTextForeground)\" DockPanel.Dock=\"Right\" HorizontalAlignment=\"Center\" VerticalAlignment=\"Center\" FontFamily=\"$($PSBoundParameters.FontFamily)\" FontSize=\"$ContentFontSize\" FontWeight=\"$($PSBoundParameters.ContentFontWeight)\" TextWrapping=\"Wrap\" Height=\"Auto\" MaxWidth=\"500\" MinWidth=\"50\" Padding=\"10\"/>\r\n\"@\r\n\r\n    # Load the window from XAML\r\n    $Window = [Windows.Markup.XamlReader]::Load((New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $xaml))\r\n\r\n    # Custom function to add a button\r\n    Function Add-Button {\r\n        Param($Content)\r\n        $Button = [Windows.Markup.XamlReader]::Load((New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $ButtonXaml))\r\n        $ButtonText = [Windows.Markup.XamlReader]::Load((New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $ButtonTextXaml))\r\n        $ButtonText.Text = \"$Content\"\r\n        $Button.Content = $ButtonText\r\n        $Button.Add_MouseEnter({\r\n            $This.Content.FontSize = \"17\"\r\n        })\r\n        $Button.Add_MouseLeave({\r\n            $This.Content.FontSize = \"16\"\r\n        })\r\n        $Button.Add_Click({\r\n            New-Variable -Name WPFMessageBoxOutput -Value $($This.Content.Text) -Option ReadOnly -Scope Script -Force\r\n            $Window.Close()\r\n        })\r\n        $Window.FindName('ButtonHost').AddChild($Button)\r\n    }\r\n\r\n    # Add buttons\r\n    If ($ButtonType -eq \"OK\")\r\n    {\r\n        Add-Button -Content \"OK\"\r\n    }\r\n\r\n    If ($ButtonType -eq \"OK-Cancel\")\r\n    {\r\n        Add-Button -Content \"OK\"\r\n        Add-Button -Content \"Cancel\"\r\n    }\r\n\r\n    If ($ButtonType -eq \"Abort-Retry-Ignore\")\r\n    {\r\n        Add-Button -Content \"Abort\"\r\n        Add-Button -Content \"Retry\"\r\n        Add-Button -Content \"Ignore\"\r\n    }\r\n\r\n    If ($ButtonType -eq \"Yes-No-Cancel\")\r\n    {\r\n        Add-Button -Content \"Yes\"\r\n        Add-Button -Content \"No\"\r\n        Add-Button -Content \"Cancel\"\r\n    }\r\n\r\n    If ($ButtonType -eq \"Yes-No\")\r\n    {\r\n        Add-Button -Content \"Yes\"\r\n        Add-Button -Content \"No\"\r\n    }\r\n\r\n    If ($ButtonType -eq \"Retry-Cancel\")\r\n    {\r\n        Add-Button -Content \"Retry\"\r\n        Add-Button -Content \"Cancel\"\r\n    }\r\n\r\n    If ($ButtonType -eq \"Cancel-TryAgain-Continue\")\r\n    {\r\n        Add-Button -Content \"Cancel\"\r\n        Add-Button -Content \"TryAgain\"\r\n        Add-Button -Content \"Continue\"\r\n    }\r\n\r\n    If ($ButtonType -eq \"None\" -and $CustomButtons)\r\n    {\r\n        Foreach ($CustomButton in $CustomButtons)\r\n        {\r\n            Add-Button -Content \"$CustomButton\"\r\n        }\r\n    }\r\n    If ($ButtonType -eq \"Hello\")\r\n    {\r\n        Add-Button -Content \"Is it me you're looking for?\"\r\n        Add-Button -Content \"Darkness my old friend.\"\r\n        Add-Button -Content \"From the other siiiiddeee\" \r\n    }\r\n\r\n    # Remove the title bar if no title is provided\r\n    If ($Title -eq \"\")\r\n    {\r\n        $TitleBar = $Window.FindName('TitleBar')\r\n        $Window.FindName('StackPanel').Children.Remove($TitleBar)\r\n    }\r\n\r\n    # Add the Content\r\n    If ($Content -is [String])\r\n    {\r\n        # Replace double quotes with single to avoid quote issues in strings\r\n        If ($Content -match '\"')\r\n        {\r\n            $Content = $Content.Replace('\"',\"'\")\r\n        }\r\n        \r\n        # Use a text box for a string value...\r\n        $ContentTextBox = [Windows.Markup.XamlReader]::Load((New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $ContentTextXaml))\r\n        $Window.FindName('ContentHost').AddChild($ContentTextBox)\r\n    }\r\n    Else\r\n    {\r\n        # ...or add a WPF element as a child\r\n        Try\r\n        {\r\n            $Window.FindName('ContentHost').AddChild($Content) \r\n        }\r\n        Catch\r\n        {\r\n            $_\r\n        }        \r\n    }\r\n\r\n    # Enable window to move when dragged\r\n    $Window.FindName('Grid').Add_MouseLeftButtonDown({\r\n        $Window.DragMove()\r\n    })\r\n\r\n    # Activate the window on loading\r\n    If ($OnLoaded)\r\n    {\r\n        $Window.Add_Loaded({\r\n            $This.Activate()\r\n            Invoke-Command $OnLoaded\r\n        })\r\n    }\r\n    Else\r\n    {\r\n        $Window.Add_Loaded({\r\n            $This.Activate()\r\n        })\r\n    }\r\n    \r\n\r\n    # Stop the dispatcher timer if exists\r\n    If ($OnClosed)\r\n    {\r\n        $Window.Add_Closed({\r\n            If ($DispatcherTimer)\r\n            {\r\n                $DispatcherTimer.Stop()\r\n            }\r\n            Invoke-Command $OnClosed\r\n        })\r\n    }\r\n    Else\r\n    {\r\n        $Window.Add_Closed({\r\n            If ($DispatcherTimer)\r\n            {\r\n                $DispatcherTimer.Stop()\r\n            }\r\n        })\r\n    }\r\n    \r\n\r\n    # If a window host is provided assign it as the owner\r\n    If ($WindowHost)\r\n    {\r\n        $Window.Owner = $WindowHost\r\n        $Window.WindowStartupLocation = \"CenterOwner\"\r\n    }\r\n\r\n    # If a timeout value is provided, use a dispatcher timer to close the window when timeout is reached\r\n    If ($Timeout)\r\n    {\r\n        $Stopwatch = New-object System.Diagnostics.Stopwatch\r\n        $TimerCode = {\r\n            If ($Stopwatch.Elapsed.TotalSeconds -ge $Timeout)\r\n            {\r\n                $Stopwatch.Stop()\r\n                $Window.Close()\r\n            }\r\n        }\r\n        $DispatcherTimer = New-Object -TypeName System.Windows.Threading.DispatcherTimer\r\n        $DispatcherTimer.Interval = [TimeSpan]::FromSeconds(1)\r\n        $DispatcherTimer.Add_Tick($TimerCode)\r\n        $Stopwatch.Start()\r\n        $DispatcherTimer.Start()\r\n    }\r\n\r\n    # Play a sound\r\n    If ($($PSBoundParameters.Sound))\r\n    {\r\n        $SoundFile = \"$env:SystemDrive\\Windows\\Media\\$($PSBoundParameters.Sound).wav\"\r\n        $SoundPlayer = New-Object System.Media.SoundPlayer -ArgumentList $SoundFile\r\n        $SoundPlayer.Add_LoadCompleted({\r\n            $This.Play()\r\n            $This.Dispose()\r\n        })\r\n        $SoundPlayer.LoadAsync()\r\n    }\r\n\r\n    # Display the window\r\n    $null = $window.Dispatcher.InvokeAsync{$window.ShowDialog()}.Wait()\r\n\r\n    }\r\n}\r\n",
+    "preview_line": "Function New-WPFMessageBox {",
+    "creator": "Mark, what a legend."
+  },
+  {
+    "title": "Ping-Time",
+    "filename": "Ping-Time.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 12,
+    "content": "Function Ping-Time {\r\n param( [String]$Destination, $Delay = 1\r\n while($true){\r\n    $Date = get-date -Format HH:mm:ss\r\n   \r\n\t$TestObject = Test-Connection $Destination -Count 1 |Select-Object * \r\n    \t$TestObject |Add-Member -NotePropertyName Time -NotePropertyValue $Date\r\n    \t$TestObject | Select-Object Address,Time,ResponseTime\r\n\r\n     Start-Sleep -Seconds $Delay\r\n }\r\n}",
+    "preview_line": "Function Ping-Time {"
+  },
+  {
+    "title": "Ping-u",
+    "filename": "Ping-u.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 97,
+    "content": "<#Info\r\n    Displays the most nootest of companions to tell you a message\r\n#>\r\n#Created by Noot Geens\r\n#Usage ping-u \"message\"\r\n\r\nfunction ping-u(){\r\nparam(\r\n    [String]$Text = \"It's time to noot!\"\r\n)\r\n#First Line\r\n    $i = 0\r\n    while($i -lt $Text.Length +5){\r\n        Write-Host \"=\" -NoNewline\r\n        $i++\r\n    }\r\n    Write-Host \"=\"\r\n\r\n#Second line\r\n    Write-Host \"| \" $Text \" |\"\r\n\r\n#Third line\r\n    $i = 0\r\n    while($i -lt $Text.Length){\r\n        Write-Host \"=\" -NoNewline\r\n        $i++\r\n    }\r\n    Write-Host \"\\   ==\"\r\n#Four\r\n    $i = 0\r\n    while($i -lt $Text.Length+1){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"\\  |\"\r\n#Five\r\n    $i = 0\r\n    while($i -lt $Text.Length+2){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"\\ |\"\r\n#Six\r\n    $i = 0\r\n    while($i -lt $Text.Length+3){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"\\|\"\r\n\r\n#Pinguin\r\n    #Line 1\r\n    $i = 0\r\n    while($i -lt $Text.Length+6){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"__\"\r\n    #Line 2\r\n    $i = 0\r\n    while($i -lt $Text.Length+3){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"-=(o '.\"\r\n    #Line 3\r\n    $i = 0\r\n    while($i -lt $Text.Length+6){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"'.-.\\\"\r\n    #Line 4\r\n    $i = 0\r\n    while($i -lt $Text.Length+6){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"/|  \\\\\"\r\n    #Line 5\r\n    $i = 0\r\n    while($i -lt $Text.Length+6){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"'|  ||\"\r\n    #Line 6\r\n    $i = 0\r\n    while($i -lt $Text.Length+6){\r\n        Write-Host \" \" -NoNewline\r\n        $i++\r\n    }\r\n    Write-host \"_\\_):,_\"\r\n}\r\n\r\nping-u\r\n\r\n",
+    "preview_line": "function ping-u(){",
+    "creator": "Noot Geens"
+  },
+  {
+    "title": "Runas",
+    "filename": "Runas.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 54,
+    "content": "function RunAs{\r\n    #Purpose: Open program on other session\r\n    #Creator: https://stackoverflow.com/users/1527542/gauss\r\n    #Version: 1.0.1\r\n    <#Changelog\r\n        1.0.1    Changed variable names for readability\r\n    #>\r\n    param (\r\n        [string]$Computer = ($env:computername),\r\n        [string]$User = \"\",    \r\n\r\n        [string]$Command,\r\n        [string]$Args\r\n     )\r\n\r\n    $script_task = {\r\n\r\n        param (\r\n            [string]$User = \"\",\r\n            [string]$Command,\r\n            [string]$Args\r\n         )\r\n\r\n        #Action\r\n        $Action = New-ScheduledTaskAction –Execute $Command\r\n        if($Args.Length > 0) { $Action = New-ScheduledTaskAction –Execute $Command -Argument $Args}\r\n\r\n        #Principal\r\n        $Principal = New-ScheduledTaskPrincipal -UserId $User -LogonType Interactive -ErrorAction Ignore\r\n\r\n        #Settings\r\n        $Settings = New-ScheduledTaskSettingsSet -MultipleInstances Parallel -Hidden\r\n\r\n        #Create TEMPTASK\r\n        $TASK = New-ScheduledTask -Action $Action -Settings $Settings -Principal $Principal\r\n\r\n        #Unregister old TEMPTASK\r\n        Unregister-ScheduledTask -TaskName 'TEMPTASK' -ErrorAction Ignore -Confirm:$false\r\n\r\n        #Register TEMPTASK\r\n        Register-ScheduledTask -InputObject $TASK -TaskPath '\\KD\\' -TaskName 'TEMPTASK'\r\n\r\n        #Execute TEMPTASK\r\n        Get-ScheduledTask -TaskName 'TEMPTASK' -TaskPath '\\KD\\' | Start-ScheduledTask\r\n\r\n        #Unregister TEMPTASK\r\n        Unregister-ScheduledTask -TaskName 'TEMPTASK' -ErrorAction Ignore -Confirm:$false\r\n\r\n    }\r\n\r\n    #The scriptblock get the same parameters of the .ps1\r\n    Invoke-Command -ComputerName $Computer -ScriptBlock $script_task -ArgumentList $User, $Command, $Args\r\n\r\n}",
+    "preview_line": "function RunAs{",
+    "creator": "https://stackoverflow.com/users/1527542/gauss"
+  },
+  {
+    "title": "Set-Wallpaper",
+    "filename": "Set-Wallpaper.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 66,
+    "content": "#Set wallpaper\r\n#declaration\r\n    $Server = \"RDSNOUT003\"\r\n    $Username = \"Hank\"\r\n    $FilePath = 'C:\\windows\\Wallpaper.png'\r\n\r\n    $Testrun = $true #set to false to run it for real\r\n\r\n#PS into the server, take a nap\r\n    Enter-PSSession -ComputerName $Server\r\n    Start-Sleep -Seconds 1\r\n\r\n    #Get all the user SIDs\r\n        $SIDs = Get-childitem 'Registry::HKEY_USERS\\' `\r\n            | Where-Object {($_.Name -NotLike \"*_Classes\") -and ($_.Name -NotLike \"*_Default\") -and ($_.Name.Length -gt 20)} `\r\n            | Select-Object Name -ExpandProperty Name\r\n\r\n        $Done = $false\r\n\r\n        #Filter the users for the one we need\r\n        foreach($SID in $SIDs){\r\n                #reset the Querry\r\n                $InitialQuerry = $null\r\n\r\n                Write-Host \"Checking $SID\"\r\n                Write-Host -f Gray \"  If you get a reg error next, it's the wrong user this time..\"\r\n                #Import the data for the querry\r\n                $InitialQuerry = (reg query (($SID+ '\\Volatile Environment')))\r\n\r\n                #Check if it is empty\r\n                if($InitialQuerry -ne $null){\r\n                    #Offer souls to the demonlord in exchange for the username\r\n                    $InitialQuerry = [String]$InitialQuerry\r\n                    $InitialQuerry = $InitialQuerry.Substring($InitialQuerry.IndexOf(\" USERNAME\") +19,$InitialQuerry.Length - $InitialQuerry.IndexOf(\" USERNAME\") -19)\r\n                    $InitialQuerry = $InitialQuerry.Substring(0,$InitialQuerry.IndexOf(\"USERPROFILE\"))\r\n                    $InitialQuerry = $InitialQuerry.TrimStart()\r\n                    $SIDUsername  = $InitialQuerry.TrimEnd()\r\n\r\n                    Write-Host -ForegroundColor Yellow \"  Success, we found a user: $SIDUsername !\"\r\n\r\n                    if($SIDUsername -like $Username){\r\n                        Write-Host -f Green \"  $SIDUsername is the one you were looking for!\"\r\n                        #Create the path to the regkey\r\n                            $path = 'Registry::' + $SID + '\\Control Panel\\Desktop\\'\r\n\r\n                        #Check the current wallpaper\r\n                            $Wallpaper = Get-ItemProperty -path $path -name Wallpaper | Select-Object WallPaper -ExpandProperty Wallpaper\r\n                            Write-host -ForegroundColor Green \"  Found Wallpaper: $Wallpaper\"\r\n\r\n                        #Set the premium wallpaper\r\n                            Write-Host -ForegroundColor Green \"  Setting wallpaper...\"\r\n                            if($testrun = $false){Set-ItemProperty -path $path -name Wallpaper -value $FilePath}\r\n                            $Wallpaper = Get-ItemProperty -path $path -name Wallpaper | Select-Object WallPaper -ExpandProperty Wallpaper\r\n                            Write-host -ForegroundColor Green \"  New Wallpaper: $Wallpaper\"\r\n\r\n                        #Try running User parameter dll's to reload the desktop (doesn't work all the time)\r\n                            rundll32.exe user32.dll UpdatePerUserSystemParameters\r\n                    }else{\r\n                        Write-Host -f Gray \"  This is not the droid you were looking for...\"\r\n                    }\r\n                }#Endif Query success\r\n            \r\n        }  \r\n\r\n#Exit the session\r\n    Get-PSSession | Remove-PSSession\r\n",
+    "preview_line": "$Server = \"RDSNOUT003\""
+  },
+  {
+    "title": "Start-and-lock",
+    "filename": "Start-and-lock.ps1",
+    "category": "Commandlets",
+    "lang": "powershell",
+    "loc": 57,
+    "content": "#Declaration\r\n$TranscriptPath = \"C:\\Scripts\\Logs\\\"\r\n$RegkeyPath = \"HKCU:\\Software\\\"\r\n$RegkeyName = \"BootInfo\"\r\n$RegkeyPropertyName = \"RebootTime\"\r\n\r\n#Test the Logpath, create it if it does not exist\r\nif(Test-Path $TranscriptPath){\r\n}else{ \r\n    New-Item -ItemType Directory -Force -Path $TranscriptPath\r\n}\r\n\r\n#Start Logging \r\n$TranscriptName = $TranscriptPath + (Get-Date -Format \"yyyy.MM.dd-HH.mm.ss\").tostring() +\".txt\"\r\nStart-Transcript -Path $TranscriptName\r\n\r\n#Get the boottime\r\n$Boottime = ((Get-CimInstance Win32_OperatingSystem).LastBootupTime)\r\n\r\n#Create the Regfolder\r\nTry{\r\n    New-Item -Path $RegkeyPath -Name $RegkeyName -ErrorAction Stop\r\n}Catch{\r\n    Write-host -f Green \"Reg key already exists.\"\r\n}\r\n\r\n#Create function to Start & Lock\r\nfunction Startandlock{\r\n         Write-Host -f DarkYellow \"No Previous Logon Detected, Starting Program and autolocking\"\r\n\r\n         #Renewing the value for next logon\r\n            New-ItemProperty -Path ($RegkeyPath + $RegkeyName) -Name $RegkeyPropertyName -Value $Boottime -Force\r\n     \r\n         #PASTE SCRIPT HERE v v v v v v v v v v\r\n         .  C:\\Scripts\\Test.bat\r\n     \r\n         #END SCRIPT HERE   ^ ^ ^ ^ ^ ^ ^ ^ ^ ^\r\n\r\n         #Waiting 5 secs, locking\r\n         Start-Sleep -Seconds 5\r\n         rundll32.exe user32.dll, LockWorkStation\r\n}\r\n\r\n#Check if the Current boot time equals the stored one\r\nif(Get-ItemProperty -Path ($RegkeyPath + $RegkeyName) -Name $RegkeyPropertyName -ErrorAction SilentlyContinue){\r\n    \r\n    if((Get-Date (Get-ItemProperty -Path ($RegkeyPath + $RegkeyName) -Name $RegkeyPropertyName | Select-Object RebootTime -ExpandProperty RebootTime)).ToString()` -eq (Get-date $Boottime).ToString()){\r\n         Write-host -f Green \"Previous Logon Detected, \"-No ;Write-Host -f red \"NOT\" -no; Write-Host -f green \" autolocking.\"\r\n    }else{\r\n        Startandlock #Check function above\r\n    }\r\n}else{\r\n        Startandlock #Check function above\r\n    }\r\n\r\nStop-Transcript\r\n\r\n",
+    "preview_line": "$TranscriptPath = \"C:\\Scripts\\Logs\\\""
+  },
+  {
+    "title": "Get-VMDetail",
+    "filename": "Get-VMDetail.ps1",
+    "category": "Hyper-V",
+    "lang": "powershell",
+    "loc": 58,
+    "content": "Function Get-VMDetail{\r\n    <#Info\r\n        Purpose: Get Details you can't get trough Get-VM (Hyper-V)\r\n                 Made this to get the Hostname of a VM from Hyper-v\r\n        Creator: Nout Geens\r\n        Version: 1.0\r\n            1.0: NG: Created\r\n        How it works:\r\n            Pulls Ciminstance & associated info, converts that raw data into an object\r\n    #>\r\n    Param([String]$VMName, [String]$ComputerName = \"Localhost\")\r\n\r\n    #Create the Query and get the info\r\n    $Query = \"Select * From Msvm_ComputerSystem Where ElementName='$VMName'\"\r\n    $VM = Get-CimInstance -namespace root\\virtualization\\v2 -query $Query -computername $ComputerName\r\n\r\n    #Get associated information\r\n    $vm_info = Get-CimAssociatedInstance -InputObject $vm\r\n\r\n    #Get the Details we need from that info\r\n    $RawData = ($vm_info | Where-Object Name -Like \"Key-Value Pair Exchange\").GuestIntrinsicExchangeItems\r\n\r\n    #Convert the Content from Raw data into an PSObject\r\n    $Content = $RawData.Replace(\"<PROPERTY\",\"`n`t<PROPERTY\")\r\n    $Content = $Content.Replace(\"<INSTANCE\",\"`n<INSTANCE\")\r\n    $ContentArray = $Content -split (\"</Instance>\")\r\n    $OutputObject = New-Object PSObject \r\n\r\n    #Convert each 'Instance' into a Property using its name and Data property\r\n    foreach($Instance in $ContentArray){\r\n        $Properties = $Instance -Split(\"<PROPERTY NAME\")\r\n\r\n        $InstanceObject = New-Object PSObject\r\n\r\n        #Converting the properties to real properties\r\n        foreach($Property in $Properties){\r\n            if($Property -notlike \"*INSTANCE*\"){\r\n                if($Property -ne \"\" -and $Property.length -ne 0){\r\n                    $Property = $Property.Replace('=',\"\")\r\n                    $PropertyName = $Property.Substring(1,$Property.IndexOf(\"TYPE\")-3)\r\n\r\n                    if($Property -like \"*VALUE*\"){\r\n                        $PropertyValue = $Property.Substring($Property.Indexof(\"<VALUE>\")+7,$Property.IndexOf(\"/\")-$Property.Indexof(\"<VALUE>\")-8)\r\n                    }else{\r\n                        $PropertyValue = \"\"\r\n                    }\r\n                }\r\n                $InstanceObject | Add-Member -NotePropertyName $PropertyName -NotePropertyValue $PropertyValue\r\n                \r\n            }   \r\n        }     \r\n            if($InstanceObject.Name -ne $null -and $InstanceObject.Data -ne $null){\r\n                $OutputObject | Add-Member -NotePropertyName $InstanceObject.Name -NotePropertyValue $InstanceObject.Data\r\n            }\r\n    }\r\n    #Return the object\r\n    $OutputObject \r\n}\r\n",
+    "preview_line": "Function Get-VMDetail{",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Remove-Wsus-Regkeys",
+    "filename": "Remove-Wsus-Regkeys.ps1",
+    "category": "Maintenance",
+    "lang": "powershell",
+    "loc": 48,
+    "content": "#Clears the registrykeys that got forced by a gpo\r\n\r\nClear\r\n\r\n$Check = \"\"\r\n\r\nWrite-host -f DarkYellow \"Use Wsus?:\" (Get-ItemPropertyValue -Path \"HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU\" -Name \"UseWUServer\")\r\nWrite-host -f DarkYellow \"Wsus Name:\" (Get-ItemPropertyValue -Path \"HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\" -Name \"WUServer\")\r\nWrite-host -f DarkYellow \"Wsus Status Server Name:\" (Get-ItemPropertyValue -Path \"HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\" -Name \"WUStatusServer\")\r\n\r\n$Check = Read-Host -Prompt \"Do you want to reset these values? (y/n)\"\r\n\r\nif($Check -eq \"y\"){\r\n    #Remove wsus usage\r\n        $Location =\"HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU\"\r\n\r\n        $KeyName = \"UseWUServer\"\r\n        $Type = \"Reg_DWORD\"\r\n        $Value = 0\r\n\r\n\r\n\r\n        reg add $Location /t $Type /v $KeyName /d $Value /f\r\n\r\n    #Remove wsus value\r\n        $Location = \"HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\"\r\n\r\n        $KeyName = \"WUServer\"\r\n        $Type = \"Reg_SZ\"\r\n        $Value = \" \"\r\n\r\n        reg add $Location /t $Type /v $KeyName /d $Value /f\r\n\r\n    #Remove wsus  Status Server value\r\n        $Location = \"HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\"\r\n\r\n        $KeyName = \"WUStatusServer\"\r\n        $Type = \"Reg_SZ\"\r\n        $Value = \" \"\r\n\r\n        reg add $Location /t $Type /v $KeyName /d $Value /f\r\n\r\n    Write-host -f Green \"Use Wsus?:\" (Get-ItemPropertyValue -Path \"HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU\" -Name \"UseWUServer\")\r\n    Write-host -f Green \"Wsus Name:\" (Get-ItemPropertyValue -Path \"HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\" -Name \"WUServer\")\r\n    Write-host -f Green \"Wsus Status Server Name:\" (Get-ItemPropertyValue -Path \"HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\" -Name \"WUStatusServer\")\r\n}else{\r\n    Write-host \"Canceled\"\r\n}\r\n",
+    "preview_line": "Clear"
+  },
+  {
+    "title": "Restart-Computer-Extended",
+    "filename": "Restart-Computer-Extended.ps1",
+    "category": "Maintenance",
+    "lang": "powershell",
+    "loc": 219,
+    "content": "Function Restart-Computer-Extended {\r\n    #region -------- Info ---------         \r\n    #Reboot an array of servers\r\n    #Creator: Nout Geens\r\n    #Version: 1.6\r\n    <#Changelog\r\n        1.0 Created\r\n        1.1 Changed into function\r\n        1.2 Looped for multiple servers\r\n        1.3 Added Validation Check, Corrected some Strings\r\n        1.4 Added smtp & Write-hosts\r\n        1.5 Made the SMTP send only one mail\r\n        1.5.1 Cleared up typo's\r\n        1.5.2 Added an Example\r\n        1.5.3 Added a use case\r\n        1.5.4 Added Imports of modules\r\n        1.6 Added Logging\r\n    #>\r\n    <#Notes\r\n        When running this from a clean powershell or task schedule use this format\r\n        . P:\\Maintanance\\Restart-Computer-Extended.ps1\r\n        Restart-Computer-Extended -Servers SRV001, SRV002, SRV003 -WaitTime 10 -TimeBetween 8\r\n\r\n        Active directory RSAT tools are required on the server, you can install these as admin:\r\n            Import-Module ServerManager\r\n            Add-WindowsFeature -Name \"RSAT-AD-PowerShell\" –IncludeAllSubFeature\r\n    #>\r\n    <#Examples\r\n        Restart-Computer-Extended -Servers SRV001, SRV002, SRV003 -WaitTime 10 -TimeBetween 8\r\n            This will do the following\r\n                - Search for the server names in AD to check if they exist\r\n                - Check if all the servers are remotly accessible (and online)\r\n                - Starting at SRV001:\r\n                    - Notify the users on that server that it wil reboot in 10 Mins\r\n                    - Wait 9 mins\r\n                    - Notify the users again\r\n                    - Wait 1 Min\r\n                    - Restart the server and wait for 8 Mins\r\n                    - Check if the server came back online\r\n                    - If it did, check for the time online and if it is more than 1 day asume it did not reboot at all\r\n                - Start process for next server...\r\n                - Create a mail and send it\r\n    #>\r\n    #endregion ---------------------\r\n\r\n    param( \r\n        [String[]]$Servers,\r\n        [Int]$WaitTime = 10, # Mins the users get to log off\r\n        [Int]$TimeBetween = 5, # Mins between server & the check if they are booted ok\r\n        [String]$Mailserver = \"mailout.ithost.be\",\r\n        [Int]$Port = 25,\r\n        [String]$Recipient = \"Monitoring@ithost.be\",\r\n        [String]$Sender = \"Reboot@ithost.be\",\r\n        [String]$LogfilePath = \"\\\\Ithost.local\\ithost$\\techdata\\Scripts\\Maintenance\\Logs\\\"\r\n        )\r\n\r\n    #Import\r\n        Import-Module ActiveDirectory\r\n\r\n    #Empty Previous Values\r\n        $RServers = @(); $Server =\"\"; $RServer=\"\"; $Error.Clear(); $ConnectionError =\"\";$Cancelled = 0;$Success =0;$Failed = 0;\r\n    \r\n    #Get the starttime & create the logging start\r\n        $StartTime = (Get-Date)\r\n        $LogFileName = \"RebootLog.\" +(Get-Date -Format \"yyyy-MM-dd-HH-mm\") + \".txt\"\r\n        $LogFileFullName = $LogfilePath + $LogFileName\r\n        Start-Transcript -Path $LogFileFullName -NoClobber\r\n\r\n    #Resolve the names to check if they are valid\r\n        foreach($Server in $Servers){\r\n            if(Get-ADComputer -Filter { name -like $Server}){\r\n                      \r\n                #Check if we can remote powershell into the server\r\n                Write-Host \"Testing connection to\" $Server \"...\"\r\n                \r\n                if(Get-CimInstance Win32_OperatingSystem -ComputerName $Server -ErrorAction SilentlyContinue){\r\n                    #Successfuly connected\r\n                    $RServers += Get-ADComputer -Filter { name -like $Server} | Select-object DNSHostName -ExpandProperty DNSHostName\r\n\r\n                }else{\r\n                    #Failed to connect\r\n                    Write-Host -f Red $Server \"is not reachable at this time.`n Are you Running as admin?\"\r\n                    $Body = \"`n\" + $Server + \" was not reachable to reboot, was it online to start with?\"\r\n                    $Cancelled += 1\r\n                    \r\n                }\r\n            }else{\r\n                #Not listed in AD\r\n                Write-Host -f Red $Server \" was not found in AD!\"\r\n                $Cancelled += 1\r\n                $Body = \"`n\" + $Server + \" was not found in AD! Did you make a typo or are you trying to reboot a non domain server?`n\"\r\n            }\r\n            \r\n            #If it was cancelled, add it to the mail\r\n            if($Cancelled -ge 1){ \r\n                $RBody += $Body + \"`n ----------------- `n \"\r\n            }\r\n        }\r\n\r\n    #Start the reboot loop\r\n    foreach($RServer in $RServers){\r\n    try{\r\n        #Notify Admin\r\n        Write-Host \"Starting Schedule:\"$RServer \r\n\r\n        #Clean previous values\r\n            $Error.Clear(); $Body = \"\"\r\n        #Check if the waittime is larger than 1\r\n        if($WaitTime -gt 1){\r\n            #Notify the users x Min\r\n            $Message = \"Server Reboot in \" + $WaitTime + \" Minutes, Save all your data!\"\r\n            Invoke-Command -computername $RServer -ScriptBlock {msg * $Using:Message} -ErrorAction SilentlyContinue\r\n            Write-Host \"Users Notified: \" $Message  \r\n\r\n            #Wait (x*60-60) Min\r\n            Write-Host \"Starting Sleep for the waittime (\"  $WaitTime  \"minutes)\"\r\n            Start-Sleep -Seconds ($WaitTime*60-60)\r\n\r\n            #Notify the users 1 Min\r\n            $Message = \"Server Reboot in one Minute, Save all your data and quit!\"\r\n            Invoke-Command -computername $RServer -ScriptBlock {msg * $Using:Message} -ErrorAction SilentlyContinue\r\n            Write-Host \"Users Notified: \" $Message \r\n\r\n            #Wait 1 Min\r\n            Write-Host \"Starting Sleep for the waittime 1 minute\"\r\n            Start-Sleep -Seconds 60\r\n\r\n        }else{\r\n\r\n            ##Notify the users 1 Min\r\n            $Message = \"Server Reboot in one Minute, Save all your data!\"\r\n            Invoke-Command -computername $RServer -ScriptBlock {msg * $Using:Message} -ErrorAction SilentlyContinue\r\n            Write-Host \"Users Notified: \" $Message \r\n            Write-Host \"Starting Sleep for the waittime of 1 minute.\"\r\n            Start-Sleep -Seconds 60 -ErrorAction SilentlyContinue \r\n        }\r\n\r\n        #Restart the computer\r\n        Write-Host \"Restarting: \"$RServer -ErrorAction SilentlyContinue \r\n        Restart-Computer -ComputerName $RServer -Force \r\n\r\n    }Catch{     \r\n        #Error 1\r\n            Write-Host -f Red \"Failed to restart computer\" $RServer \":\"\r\n            $Error[0], \"`n\"\r\n\r\n            #Create notification\r\n            $Body = $RServer + \" has not started it's scheduled reboot. `n \" + $Error[0] + \"`n -----------------\"\r\n            $Priority += \"High\"\r\n            $Failed += 1\r\n    }\r\n    #Wait the time between before starting the next server's reboot\r\n    Write-Host \"Waiting for $TimeBetween minutes before continuing...\"\r\n    ($TimeBetween*60) | Start-Sleep  \r\n         \r\n    #Check if server booted correctly (only of the previous command has been successfull)\r\n         if(Select-String -InputObject $Error[0] -Pattern \"Restart-Computer\" -NotMatch){        \r\n            #Get the Time online  \r\n            $RTime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem -ComputerName $RServer).LastBootupTime\r\n\r\n            #Check if we have data\r\n            if($RTime -ne \"\"){\r\n                if($RTime.Days -lt 1){\r\n                #Success\r\n                    #Notify Monitoring\r\n                    $Body = $RServer + \" has rebooted and came back online \" + $RTime.Hours + \" hours and \" + $RTime.Minutes + \" minutes ago.\" \r\n                    $Priority += \"Normal\"\r\n                    $Success += 1\r\n\r\n                }else{\r\n                #Error 2\r\n                    #Notify Monitoring\r\n                    $Body = $Rserver + \" has not rebooted `n \" + $Error[0] + \"`n -----------------\"\r\n                    $Priority += \"High\"\r\n                    $Failed += 1\r\n                }\r\n            }else{\r\n            #Critical 1\r\n                #Notify Monitoring\r\n                $Body = $Server + \" has not rebooted, Check if it needs to be turned on! `n \" + $Error[0] + \"`n -----------------\"\r\n                $Priority += \"High\"\r\n                $Failed += 1\r\n            }\r\n        }\r\n        #Add this line to \r\n        $RBody += $Body + \"`n\"\r\n        \r\n    }\r\n\r\n    #region Notify Monitoring\r\n        #Create the Title\r\n            \r\n            if($Failed -ge 1){\r\n            #Servers where rebooted, but some failed\r\n                $Subject = \"Server Reboot Status Report - Failure (\" + $Failed + \" out of \" + $Servers.count + \" have failed!)\"\r\n            }elseif($Cancelled -ge 1){\r\n            #there where no failures, but some didn't start the reboot\r\n                $Subject = \"Server Reboot Status Report - Cancelled ($Cancelled out of \" + $Servers.Count + \" have been Cancelled)\"\r\n            }else{\r\n            #Everything went magicaly well\r\n                $Subject = \"Server Reboot Status Report - Everything went fine! ($Success out of \" + $Servers.count + \")\"\r\n            }\r\n\r\n        #Add a little menu\r\n        $ServerList = $Servers -join \" | \"\r\n        $Quickview = \"------------------ `n Servers: $ServerList `n Startime: $StartTime `n Success: $Success `n Cancelled: $Cancelled `n Failed: $Failed `n------------- `n \"\r\n        $Footer = \"`n`n This mail was send from: \" + $env:COMPUTERNAME + \" at \" + (Get-Date -Format \"yyyy/mm/dd HH:MM\")\r\n        $RBody = $Quickview + $RBody + $Footer\r\n\r\n        #End Logging\r\n        Stop-Transcript\r\n\r\n        #Realy send it\r\n        if($Priority -like \"*High*\"){\r\n            Send-MailMessage -From $Sender -SmtpServer $Mailserver -Port $Port -to $Recipient -Subject $Subject -Body $RBody -Attachments $LogFileFullName -Priority High\r\n        }else{\r\n            Send-MailMessage -From $Sender -SmtpServer $Mailserver -Port $Port -to $Recipient -Subject $Subject -Body $RBody -Attachments $LogFileFullName \r\n        }#endregion\r\n}",
+    "preview_line": "Function Restart-Computer-Extended {",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Restart-Computer-Simple",
+    "filename": "Restart-Computer-Simple.ps1",
+    "category": "Maintenance",
+    "lang": "powershell",
+    "loc": 36,
+    "content": "#Rebootscript\r\n#V1.0\r\n\r\n#Declaration\r\n$ServerNames = \"localhost\"\r\n\r\n#Empty Previous Values\r\n$Servers = @();$ServerName =\"\"; $Server =\"\"\r\n\r\n#Resolve the names to check if they are valid\r\nforeach($ServerName in $ServerNames){\r\n    $Servers += Get-ADComputer -Filter { name -like $ServerName}\r\n}\r\n\r\n\r\nforeach($Server in $Servers){ \r\n    try{\r\n        #Notify the users\r\n        Invoke-Command -computername $Server.DNSHOSTNAME -ScriptBlock {msg * \"Server Reboot in 5 Minuits, Save all your data!\"} -ErrorAction SilentlyContinue\r\n\r\n            #Wait 4 Minuits\r\n            Start-Sleep -Seconds 240\r\n\r\n        #Notify the users\r\n        Invoke-Command -computername $Server.DNSHOSTNAME -ScriptBlock {msg * \"Server Reboot in 1 Minuit, Save all your data and quit!\"} -ErrorAction SilentlyContinue\r\n\r\n            #Wait 1 Minuit\r\n            Start-Sleep -Seconds 60\r\n\r\n        #Restart the computer\r\n        Restart-Computer -ComputerName $Server.DNSHOSTNAME -Force\r\n        \r\n    }Catch{ \r\n        Write-Host \"Something failed\"\r\n    }\r\n}\r\n",
+    "preview_line": "$ServerNames = \"localhost\""
+  },
+  {
+    "title": "Get-DiskspaceLoop",
+    "filename": "Get-DiskspaceLoop.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 10,
+    "content": "$Letter = (Read-Host \"Provide the disk letter you want to monitor (like D)\")+\":\"\r\n$Disk = Get-WmiObject Win32_LogicalDisk | Where-Object DeviceID -eq $Letter\r\n\r\nwhile($Disk.FreeSpace -gt 0){\r\n    $Disk = Get-WmiObject Win32_LogicalDisk | Where-Object DeviceID -eq $letter\r\n    $PercentComplete = (100/$Disk.Size)*$Disk.FreeSpace\r\n    $Status = \"Drive $Letter is  currently at\" + ([math]::Round($PercentComplete,2)) +\"%, \"+ ([math]::Round($Disk.FreeSpace /[Math]::Pow(1024, 3),2)) +\"GB Free space Remaining. [CTRL-C] To Exit\"\r\n    Write-Progress -PercentComplete $PercentComplete -Activity \"Checking Disksize\" -Status $Status\r\n    Sleep -Seconds 1\r\n}\r\n",
+    "preview_line": "$Letter = (Read-Host \"Provide the disk letter you want to monitor (like D)\")+\":\""
+  },
+  {
+    "title": "Get-EventLogs",
+    "filename": "Get-EventLogs.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 20,
+    "content": "#Get Event logs since Yesterday\r\n#v0.5\r\n#Creator:Nout\r\n\r\n#Declaration\r\n$Servers = \"SRVNOUT001\"\r\n$Logname = \"DFS*\"\r\n#Yesterdaaaaayy\r\n$Yesterday = (get-date).AddDays(-1).ToString(\"yyy/MM/dd\")\r\n\r\n#foreach server\r\nForeach($Server in $Servers) {\r\n    Write-Host \"-------------\"$Server \"------------- \"\r\n    #Get the log\r\n    $Errors = Get-EventLog -ComputerName $Server -After $Yesterday -logname $Logname -EntryType Error\r\n    \r\n    #Show howmanny of them where present\r\n    Write-Host ($Errors | measure | Select-Object Count -ExpandProperty Count) \"Errors Found Since $Yesterday\"\r\n    $Errors\r\n}\r\n",
+    "preview_line": "$Servers = \"SRVNOUT001\"",
+    "creator": "Nout"
+  },
+  {
+    "title": "Get-LoggedOnAdmins",
+    "filename": "Get-LoggedOnAdmins.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 53,
+    "content": "#Get the logged-on Admins who tell others to logoff\r\n#Creator: Nout Geens\r\n#Version: 1.2\r\n<#Changelog\r\n    1.0 Created\r\n    1.1 Changed inefficient code\r\n    1.2 Added Write-Progress\r\n#>\r\n#Requires Get-Loggedonuser.ps1\r\n\r\n#Obtaining the full Serverlist from AD\r\n    Write-Host \"Obtaining the full Serverlist from AD\"\r\n$Servers = Get-ADComputer -filter * -Properties OperatingSystem, CanonicalName, Enabled | `\r\n        Where-Object {(($_.OperatingSystem -Like \"*2019*\" -or $_.OperatingSystem -Like \"*2016*\" -or $_.OperatingSystem -Like \"*2012*\"-or $_.OperatingSystem -Like \"*2008*\" -or $_.OperatingSystem -Like \"*2003*\") `\r\n                    -and ($_.name -notlike \"*clb*\") `\r\n                    -and ($_.name -notlike \"foc*\") `\r\n                    -and ($_.Enabled -eq $true) `\r\n                    -and ($_.CanonicalName -notlike \"*Cleanup*\"))} | `\r\n        Select-Object * | `\r\n        Sort-Object Name\r\n\r\n#Cleaning up old values\r\n    $Reachable = @(); $UnReachable = @();$AdminList =@()\r\n\r\n#Getting external commands\r\n   .\\Get-loggedonuser.ps1\r\n     \r\n#Looping it all\r\nforeach($Server in $Servers){\r\n    #Notify the admin\r\n    $Status = \"Checking \" +$Server.Name + \", \" +$Servers.IndexOf($Server) +\" out of \"+ $Servers.Count\r\n    Write-Progress -Activity \"Checking Servers\" -Status $Status -ErrorAction SilentlyContinue -PercentComplete($Servers.IndexOf($Server) / $Servers.Count)\r\n\r\n    #Check if the server can be reached\r\n        if(Test-Connection -Computername $Server.Name -Count 1 -ErrorAction SilentlyContinue){\r\n                #Get the users\r\n                $Admins = Get-LoggedOnUsers -ComputerName $Server.Name | Where-Object Username -Like \"*admin*\"\r\n                Write-host \"Done Checking\"$Server.Name \"...\"\r\n                $Reachable += $Server\r\n\r\n        }Else{ Write-host $Server.Name \"is not reachable\"\r\n                $UnReachable += $Server}\r\n        \r\n    $AdminList += @($Admins)\r\n}\r\n#List it out\r\n    Write-Host \"-----------------------------\"\r\n    Write-host \"Connected to \"$Reachable.count\" out of \"$Servers.Count\" Servers.\"\r\n    $FilterdAdminList = $AdminList | Sort-Object Username,Server -Unique\r\n    $FilterdAdminList | Group-Object Username | Select-Object Count, Name | Sort-Object Count -Descending\r\n    Write-host \"There are \"$UnReachable.count \"unreachable servers, use $ UnReachable to see them. `nThis could be because of access rights.\"\r\n\r\n#$FilterdAdminList | Where-Object Username -EQ admingp | ft\r\n",
+    "preview_line": "Write-Host \"Obtaining the full Serverlist from AD\"",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-LoggedOnUser",
+    "filename": "Get-LoggedOnUser.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 65,
+    "content": "Function Get-LoggedOnUsers{\r\n#Creator: Nout Geens\r\n#Version: 1.0\r\n\r\n    Param(\r\n        [String]$ComputerName = $env:COMPUTERNAME\r\n\r\n        )\r\n\r\n    #Create the Command (need to convert it to a scriptblock)\r\n        $Command = [SCRIPTBLOCK]::Create(\"Quser /Server:\" + $ComputerName)\r\n    \r\n    #Execute it   \r\n        $Quser = Invoke-Command -ScriptBlock $Command\r\n        $Quser = $Quser | Select-Object -Skip 1\r\n\r\n    #Reset a value\r\n        $UserArray = @(); $Username =\"\"; $SessionName =\"\"; $ID =\"\"; $State =\"\"; $IdleTime =\"\"; $LogonTime =\"\"\r\n\r\n    #Convert it to powershell\r\n        foreach($Userline in $Quser){\r\n            #For every line, substring the value\r\n            $Username = $Userline.SubString(1, 20).Trim()\r\n            $SessionName = $Userline.Substring(23,18).Trim()\r\n            $ID = $Userline.Substring(42,3).Trim()\r\n            $State = $Userline.Substring(46,6).Trim()\r\n            $IdleTime = $Userline.Substring(53,10).Trim()\r\n                #Check if the values contain numbers\r\n                    if($IdleTime -eq '.'){\r\n                        $IdleTime = New-TimeSpan -Minutes 0\r\n                    }elseif($IdleTime.Contains('+')){\r\n                      #Is DayHoursMins\r\n                        $IdleTime = $IdleTime.Split('+').split(':')\r\n                        $IdleTime = New-TimeSpan -Days $IdleTime[0] -Hours $IdleTime[1] -Minutes $IdleTime[2]\r\n                    }elseif($IdleTime.Contains(':')){\r\n                      #Is HoursMins \r\n                        $IdleTime = $IdleTime.Split(':')\r\n                        $IdleTime = New-TimeSpan -Hours $IdleTime[0] -Minutes $IdleTime[1]\r\n                    }elseif($IdleTime.Contains(\"none\")){  \r\n                      #Is Active\r\n                        $IdleTime = New-TimeSpan -Seconds 0\r\n                    }else{\r\n                      #Is Mins\r\n                        $IdleTime = New-TimeSpan -Minutes $IdleTime\r\n                    }\r\n            $LogonTime = Get-date ($Userline.Substring(65,($Userline.Length-65)))\r\n\r\n            #Create an object for it\r\n            $Userobject = @()\r\n            $Userobject = New-Object -TypeName psobject\r\n            $UserObject | Add-Member -NotePropertyName \"Username\" -NotePropertyValue $Username\r\n            $UserObject | Add-Member -NotePropertyName \"SessionName\" -NotePropertyValue $SessionName\r\n            $UserObject | Add-Member -NotePropertyName \"ID\" -NotePropertyValue $ID\r\n            $UserObject | Add-Member -NotePropertyName \"State\" -NotePropertyValue $State\r\n            $UserObject | Add-Member -NotePropertyName \"IdleTime\" -NotePropertyValue $IdleTime\r\n            $UserObject | Add-Member -NotePropertyName \"LogonTime\" -NotePropertyValue $LogonTime\r\n            $UserObject | Add-Member -NotePropertyName \"Server\" -NotePropertyValue $ComputerName\r\n\r\n            #Remove this line\r\n            Write-Host \"Checked user:\" $Username\r\n            #Add the object to the array\r\n            $UserArray += $Userobject\r\n            }\r\n        $UserArray\r\n}",
+    "preview_line": "Function Get-LoggedOnUsers{",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-MacAddress",
+    "filename": "Get-MacAddress.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 59,
+    "content": "#Notes\r\n    # Check the arp table for the inputted ip address\r\n    # version: 1.0\r\nfunction Get-MacAddress{\r\n    param(\r\n        [String]$Address,\r\n        [Switch]$All = $True\r\n    )\r\n\r\n    #To be sure it's listed and updated, ping the address\r\n    if($Address -ne \"\"){\r\n        Write-host -f Green \"Pinging Address . . .\"\r\n        $Empty = Ping $Address -n 1\r\n        $All = $false\r\n    }\r\n\r\n    #Get the ARP Table\r\n    $ARPTableRaw = Arp -a\r\n    \r\n    #Create an empty Array\r\n    $ARPTable = @()\r\n\r\n    #Loop the table to format is as an object Array\r\n    foreach($Row in $ARPTableRaw){\r\n            \r\n        #Check if the Row is empty or unusable\r\n        if($Row -like \"\" -or $Row -like \"*internet address*\"){\r\n\r\n        #Check if the row is an interface name\r\n        }Elseif($Row -like \"Interface*\"){\r\n            $Interface = $Row.Substring(11,$row.LastIndexOf(\".\")-7).Trim()\r\n        }Else{\r\n            #Trim the Spaces in front & in the back\r\n            $Row = ($Row.TrimStart()).trim()\r\n\r\n            #Get the Ip, Mac, And type\r\n            $EntryIP = $Row.Substring(0,$row.LastIndexOf(\".\")+4).Trim()\r\n            $EntryMac = $Row.Substring($row.IndexOf(\"-\")-2,17).Trim()\r\n            $EntryType = $Row.Substring($Row.Length-7,7).trim()\r\n\r\n            #Write to object\r\n            $Entry = New-Object -TypeName PSObject\r\n            $Entry | Add-Member -NotePropertyName \"IP\" -NotePropertyValue $EntryIP\r\n            $Entry | Add-Member -NotePropertyName \"Mac\" -NotePropertyValue $EntryMac\r\n            $Entry | Add-Member -NotePropertyName \"Type\" -NotePropertyValue $EntryType\r\n            $Entry | Add-Member -NotePropertyName \"Interface\" -NotePropertyValue $Interface\r\n\r\n            $ARPTable += $Entry\r\n        }#endelse\r\n    }#endforeach\r\n\r\n    if($All){\r\n        $ARPTable\r\n    }\r\n\r\n    if($Address -ne $null){\r\n        $ARPTable | Where-Object IP -Like $Address  \r\n    }\r\n}\r\n",
+    "preview_line": "function Get-MacAddress{"
+  },
+  {
+    "title": "Get-NTFSPermissions",
+    "filename": "Get-NTFSPermissions.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 15,
+    "content": "#Function to get NTFS Rights\r\n#Creator: BHARAT SUNEJA\r\n#https://exchangepedia.com/2017/11/get-file-or-folder-permissions-using-powershell.html\r\n\r\n  function Get-NTFSPermissions ($Object) {\r\n  (get-acl $Object).access | select `\r\n\t\t@{Label=\"Identity\";Expression={$_.IdentityReference}}, `\r\n\t\t@{Label=\"Right\";Expression={$_.FileSystemRights}}, `\r\n\t\t@{Label=\"Access\";Expression={$_.AccessControlType}}, `\r\n\t\t@{Label=\"Inherited\";Expression={$_.IsInherited}}, `\r\n\t\t@{Label=\"Inheritance Flags\";Expression={$_.InheritanceFlags}}, `\r\n\t\t@{Label=\"Propagation Flags\";Expression={$_.PropagationFlags}} | ft -auto\r\n\t\t}\r\n\r\n#Example:  Get-NTFSPermissions -Object \"\\\\Nout.local\\Data$\\Production\\Stage1\\DWG*\"\r\n",
+    "preview_line": "function Get-NTFSPermissions ($Object) {",
+    "creator": "BHARAT SUNEJA"
+  },
+  {
+    "title": "Get-OfficeActivation",
+    "filename": "Get-OfficeActivation.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 1,
+    "content": "Get-CimInstance SoftwareLicensingProduct| where {$_.name -like \"*office*\"}|select name,licensestatus\r\n",
+    "preview_line": "Get-CimInstance SoftwareLicensingProduct| where {$_.name -like \"*office*\"}|select name,licensestatus"
+  },
+  {
+    "title": "Get-PendingReboot",
+    "filename": "Get-PendingReboot.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 220,
+    "content": "Function Get-PendingReboot\r\n{\r\n<#\r\n.SYNOPSIS\r\n    Gets the pending reboot status on a local or remote computer.\r\n\r\n.DESCRIPTION\r\n    This function will query the registry on a local or remote computer and determine if the\r\n    system is pending a reboot, from Microsoft updates, Configuration Manager Client SDK, Pending Computer \r\n    Rename, Domain Join or Pending File Rename Operations. For Windows 2008+ the function will query the \r\n    CBS registry key as another factor in determining pending reboot state.  \"PendingFileRenameOperations\" \r\n    and \"Auto Update\\RebootRequired\" are observed as being consistant across Windows Server 2003 & 2008.\r\n\t\r\n    CBServicing = Component Based Servicing (Windows 2008+)\r\n    WindowsUpdate = Windows Update / Auto Update (Windows 2003+)\r\n    CCMClientSDK = SCCM 2012 Clients only (DetermineIfRebootPending method) otherwise $null value\r\n    PendComputerRename = Detects either a computer rename or domain join operation (Windows 2003+)\r\n    PendFileRename = PendingFileRenameOperations (Windows 2003+)\r\n    PendFileRenVal = PendingFilerenameOperations registry value; used to filter if need be, some Anti-\r\n                     Virus leverage this key for def/dat removal, giving a false positive PendingReboot\r\n\r\n.PARAMETER ComputerName\r\n    A single Computer or an array of computer names.  The default is localhost ($env:COMPUTERNAME).\r\n\r\n.PARAMETER ErrorLog\r\n    A single path to send error data to a log file.\r\n\r\n.EXAMPLE\r\n    PS C:\\> Get-PendingReboot -ComputerName (Get-Content C:\\ServerList.txt) | Format-Table -AutoSize\r\n\t\r\n    Computer CBServicing WindowsUpdate CCMClientSDK PendFileRename PendFileRenVal RebootPending\r\n    -------- ----------- ------------- ------------ -------------- -------------- -------------\r\n    DC01           False         False                       False                        False\r\n    DC02           False         False                       False                        False\r\n    FS01           False         False                       False                        False\r\n\r\n    This example will capture the contents of C:\\ServerList.txt and query the pending reboot\r\n    information from the systems contained in the file and display the output in a table. The\r\n    null values are by design, since these systems do not have the SCCM 2012 client installed,\r\n    nor was the PendingFileRenameOperations value populated.\r\n\r\n.EXAMPLE\r\n    PS C:\\> Get-PendingReboot\r\n\t\r\n    Computer           : WKS01\r\n    CBServicing        : False\r\n    WindowsUpdate      : True\r\n    CCMClient          : False\r\n    PendComputerRename : False\r\n    PendFileRename     : False\r\n    PendFileRenVal     : \r\n    RebootPending      : True\r\n\t\r\n    This example will query the local machine for pending reboot information.\r\n\t\r\n.EXAMPLE\r\n    PS C:\\> $Servers = Get-Content C:\\Servers.txt\r\n    PS C:\\> Get-PendingReboot -Computer $Servers | Export-Csv C:\\PendingRebootReport.csv -NoTypeInformation\r\n\t\r\n    This example will create a report that contains pending reboot information.\r\n\r\n.LINK\r\n    Component-Based Servicing:\r\n    http://technet.microsoft.com/en-us/library/cc756291(v=WS.10).aspx\r\n\t\r\n    PendingFileRename/Auto Update:\r\n    http://support.microsoft.com/kb/2723674\r\n    http://technet.microsoft.com/en-us/library/cc960241.aspx\r\n    http://blogs.msdn.com/b/hansr/archive/2006/02/17/patchreboot.aspx\r\n\r\n    SCCM 2012/CCM_ClientSDK:\r\n    http://msdn.microsoft.com/en-us/library/jj902723.aspx\r\n\r\n.NOTES\r\n    Author:  Brian Wilhite\r\n    Email:   bcwilhite (at) live.com\r\n    Date:    29AUG2012\r\n    PSVer:   2.0/3.0/4.0/5.0\r\n    Updated: 27JUL2015\r\n    UpdNote: Added Domain Join detection to PendComputerRename, does not detect Workgroup Join/Change\r\n             Fixed Bug where a computer rename was not detected in 2008 R2 and above if a domain join occurred at the same time.\r\n             Fixed Bug where the CBServicing wasn't detected on Windows 10 and/or Windows Server Technical Preview (2016)\r\n             Added CCMClient property - Used with SCCM 2012 Clients only\r\n             Added ValueFromPipelineByPropertyName=$true to the ComputerName Parameter\r\n             Removed $Data variable from the PSObject - it is not needed\r\n             Bug with the way CCMClientSDK returned null value if it was false\r\n             Removed unneeded variables\r\n             Added PendFileRenVal - Contents of the PendingFileRenameOperations Reg Entry\r\n             Removed .Net Registry connection, replaced with WMI StdRegProv\r\n             Added ComputerPendingRename\r\n#>\r\n\r\n[CmdletBinding()]\r\nparam(\r\n\t[Parameter(Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]\r\n\t[Alias(\"CN\",\"Computer\")]\r\n\t[String[]]$ComputerName=\"$env:COMPUTERNAME\",\r\n\t[String]$ErrorLog\r\n\t)\r\n\r\nBegin {  }## End Begin Script Block\r\nProcess {\r\n  Foreach ($Computer in $ComputerName) {\r\n\tTry {\r\n\t    ## Setting pending values to false to cut down on the number of else statements\r\n\t    $CompPendRen,$PendFileRename,$Pending,$SCCM = $false,$false,$false,$false\r\n                        \r\n\t    ## Setting CBSRebootPend to null since not all versions of Windows has this value\r\n\t    $CBSRebootPend = $null\r\n\t\t\t\t\t\t\r\n\t    ## Querying WMI for build version\r\n\t    $WMI_OS = Get-WmiObject -Class Win32_OperatingSystem -Property BuildNumber, CSName -ComputerName $Computer -ErrorAction Stop\r\n\r\n\t    ## Making registry connection to the local/remote computer\r\n\t    $HKLM = [UInt32] \"0x80000002\"\r\n\t    $WMI_Reg = [WMIClass] \"\\\\$Computer\\root\\default:StdRegProv\"\r\n\t\t\t\t\t\t\r\n\t    ## If Vista/2008 & Above query the CBS Reg Key\r\n\t    If ([Int32]$WMI_OS.BuildNumber -ge 6001) {\r\n\t\t    $RegSubKeysCBS = $WMI_Reg.EnumKey($HKLM,\"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Component Based Servicing\\\")\r\n\t\t    $CBSRebootPend = $RegSubKeysCBS.sNames -contains \"RebootPending\"\t\t\r\n\t    }\r\n\t\t\t\t\t\t\t\r\n\t    ## Query WUAU from the registry\r\n\t    $RegWUAURebootReq = $WMI_Reg.EnumKey($HKLM,\"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update\\\")\r\n\t    $WUAURebootReq = $RegWUAURebootReq.sNames -contains \"RebootRequired\"\r\n\t\t\t\t\t\t\r\n\t    ## Query PendingFileRenameOperations from the registry\r\n\t    $RegSubKeySM = $WMI_Reg.GetMultiStringValue($HKLM,\"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\\",\"PendingFileRenameOperations\")\r\n\t    $RegValuePFRO = $RegSubKeySM.sValue\r\n\r\n\t    ## Query JoinDomain key from the registry - These keys are present if pending a reboot from a domain join operation\r\n\t    $Netlogon = $WMI_Reg.EnumKey($HKLM,\"SYSTEM\\CurrentControlSet\\Services\\Netlogon\").sNames\r\n\t    $PendDomJoin = ($Netlogon -contains 'JoinDomain') -or ($Netlogon -contains 'AvoidSpnSet')\r\n\r\n\t    ## Query ComputerName and ActiveComputerName from the registry\r\n\t    $ActCompNm = $WMI_Reg.GetStringValue($HKLM,\"SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ActiveComputerName\\\",\"ComputerName\")            \r\n\t    $CompNm = $WMI_Reg.GetStringValue($HKLM,\"SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName\\\",\"ComputerName\")\r\n\r\n\t    If (($ActCompNm -ne $CompNm) -or $PendDomJoin) {\r\n\t        $CompPendRen = $true\r\n\t    }\r\n\t\t\t\t\t\t\r\n\t    ## If PendingFileRenameOperations has a value set $RegValuePFRO variable to $true\r\n\t    If ($RegValuePFRO) {\r\n\t\t    $PendFileRename = $true\r\n\t    }\r\n\r\n\t    ## Determine SCCM 2012 Client Reboot Pending Status\r\n\t    ## To avoid nested 'if' statements and unneeded WMI calls to determine if the CCM_ClientUtilities class exist, setting EA = 0\r\n\t    $CCMClientSDK = $null\r\n\t    $CCMSplat = @{\r\n\t        NameSpace='ROOT\\ccm\\ClientSDK'\r\n\t        Class='CCM_ClientUtilities'\r\n\t        Name='DetermineIfRebootPending'\r\n\t        ComputerName=$Computer\r\n\t        ErrorAction='Stop'\r\n\t    }\r\n\t    ## Try CCMClientSDK\r\n\t    Try {\r\n\t        $CCMClientSDK = Invoke-WmiMethod @CCMSplat\r\n\t    } Catch [System.UnauthorizedAccessException] {\r\n\t        $CcmStatus = Get-Service -Name CcmExec -ComputerName $Computer -ErrorAction SilentlyContinue\r\n\t        If ($CcmStatus.Status -ne 'Running') {\r\n\t            Write-Warning \"$Computer`: Error - CcmExec service is not running.\"\r\n\t            $CCMClientSDK = $null\r\n\t        }\r\n\t    } Catch {\r\n\t        $CCMClientSDK = $null\r\n\t    }\r\n\r\n\t    If ($CCMClientSDK) {\r\n\t        If ($CCMClientSDK.ReturnValue -ne 0) {\r\n\t\t        Write-Warning \"Error: DetermineIfRebootPending returned error code $($CCMClientSDK.ReturnValue)\"          \r\n\t\t    }\r\n\t\t    If ($CCMClientSDK.IsHardRebootPending -or $CCMClientSDK.RebootPending) {\r\n\t\t        $SCCM = $true\r\n\t\t    }\r\n\t    }\r\n            \r\n\t    Else {\r\n\t        $SCCM = $null\r\n\t    }\r\n\r\n\t    ## Creating Custom PSObject and Select-Object Splat\r\n\t    $SelectSplat = @{\r\n\t        Property=(\r\n\t            'Computer',\r\n\t            'CBServicing',\r\n\t            'WindowsUpdate',\r\n\t            'CCMClientSDK',\r\n\t            'PendComputerRename',\r\n\t            'PendFileRename',\r\n\t            'PendFileRenVal',\r\n\t            'RebootPending'\r\n\t        )}\r\n\t    New-Object -TypeName PSObject -Property @{\r\n\t        Computer=$WMI_OS.CSName\r\n\t        CBServicing=$CBSRebootPend\r\n\t        WindowsUpdate=$WUAURebootReq\r\n\t        CCMClientSDK=$SCCM\r\n\t        PendComputerRename=$CompPendRen\r\n\t        PendFileRename=$PendFileRename\r\n\t        PendFileRenVal=$RegValuePFRO\r\n\t        RebootPending=($CompPendRen -or $CBSRebootPend -or $WUAURebootReq -or $SCCM -or $PendFileRename)\r\n\t    } | Select-Object @SelectSplat\r\n\r\n\t} Catch {\r\n\t    Write-Warning \"$Computer`: $_\"\r\n\t    ## If $ErrorLog, log the file to a user specified location/path\r\n\t    If ($ErrorLog) {\r\n\t        Out-File -InputObject \"$Computer`,$_\" -FilePath $ErrorLog -Append\r\n\t    }\t\t\t\t\r\n\t}\t\t\t\r\n  }## End Foreach ($Computer in $ComputerName)\t\t\t\r\n}## End Process\r\n\r\nEnd {  }## End End\r\n\r\n}## End Function Get-PendingReboot",
+    "preview_line": "Function Get-PendingReboot"
+  },
+  {
+    "title": "Get-SMBShareWMI",
+    "filename": "Get-SMBShareWMI.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 17,
+    "content": "Function Get-SMBShareWMI{\r\nparam (\r\n        [String]$Server #SMB Host\r\n     )\r\n    #This also works for powershell v2!\r\n    #Creator: Nout Geens\r\n\r\n    #Checking the shares and converting it to powershell\r\n    $Shares = Invoke-Command -ComputerName $Server -Scriptblock { Get-WmiObject -Class Win32_Share }\r\n    foreach($Share in $Shares){\r\n        $Share | Add-Member -NotePropertyName \"Server\" -NotePropertyValue $Server\r\n        $_\r\n    }\r\n    $Shares | Select-Object Name,Path,Description,Server | Sort-Object Name \r\n}\r\n\r\n\r\n",
+    "preview_line": "Function Get-SMBShareWMI{",
+    "creator": "Nout Geens"
+  },
+  {
+    "title": "Get-WindowsBootTime",
+    "filename": "Get-WindowsBootTime.ps1",
+    "category": "Reporting",
+    "lang": "powershell",
+    "loc": 20,
+    "content": "Function Get-WindowsBootTime{\r\n    Param(\r\n        [String]$ComputerName = $env:COMPUTERNAME\r\n\r\n        )\r\n\r\n    if($ComputerName -eq $env:COMPUTERNAME){\r\n        $BootTimeWmic = (wmic os get lastbootuptime)[2]\r\n    }else{\r\n        $BootTimeWmic = Invoke-Command -ComputerName $ComputerName -Scriptblock{(wmic os get lastbootuptime)[2]}\r\n    }\r\n\r\n$BootTimeYear = $BootTimeWmic.Substring(0,4) \r\n$BootTimeMonth = $BootTimeWmic.Substring(4,2)\r\n$BootTimeDay = $BootTimeWmic.Substring(6,2)\r\n$BootTimeHour = $BootTimeWmic.Substring(8,2)\r\n$BootTimeMin = $BootTimeWmic.Substring(10,2)\r\nGet-date -Year $BootTimeYear -Month $BootTimeMonth -Day $BootTimeDay -Hour $BootTimeHour -Minute $BootTimeMin\r\n\r\n}",
+    "preview_line": "Function Get-WindowsBootTime{"
+  },
+  {
+    "title": "Invoke-SQLSelect",
+    "filename": "Invoke-SQLSelect.ps1",
+    "category": "SQL",
+    "lang": "powershell",
+    "loc": 45,
+    "content": "function Invoke-SqlSelect\r\n    #Created by 'Rubanov'\r\n{\r\n    [CmdletBinding()]\r\n    Param\r\n    ( \r\n        [ValidateNotNullOrEmpty()] \r\n        [Parameter(ValueFromPipeline=$True,Mandatory=$True)] \r\n        [string] $SqlServer,\r\n        [Parameter(ValueFromPipeline=$True,Mandatory=$False)] \r\n        [string] $Database = \"master\",\r\n        [ValidateNotNullOrEmpty()] \r\n        [Parameter(ValueFromPipeline=$True,Mandatory=$True)] \r\n        [string] $SqlStatement\r\n    )\r\n    $ErrorActionPreference = \"Stop\"\r\n\r\n    $sqlConnection = New-Object System.Data.SqlClient.SqlConnection\r\n    $sqlConnection.ConnectionString = \"Server=$SqlServer;Database=$Database;Integrated Security=True\"\r\n\r\n    $sqlCmd = New-Object System.Data.SqlClient.SqlCommand\r\n    $sqlCmd.CommandText = $SqlStatement\r\n    $sqlCmd.Connection = $sqlConnection\r\n\r\n    $sqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter\r\n    $sqlAdapter.SelectCommand = $sqlCmd\r\n    $dataTable = New-Object System.Data.DataTable\r\n    try\r\n    {\r\n        $sqlConnection.Open()\r\n        $sqlOutput = $sqlAdapter.Fill($dataTable)\r\n        Write-Output -Verbose $sqlOutput\r\n        $sqlConnection.Close()\r\n        $sqlConnection.Dispose()\r\n        return $dataTable\r\n    }\r\n    catch\r\n    {\r\n        Write-Output -Verbose \"Error executing SQL on database [$Database] on server [$SqlServer]. Statement: `r`n$SqlStatement\"\r\n        return $null\r\n    }\r\n}\r\n\r\n\r\n\r\n",
+    "preview_line": "function Invoke-SqlSelect",
+    "creator": "Rubanov"
+  },
+  {
+    "title": "Remove-SQL-Row",
+    "filename": "Remove-SQL-Row.ps1",
+    "category": "SQL",
+    "lang": "powershell",
+    "loc": 77,
+    "content": "#Script to Backup rows, and delete it from the original table\r\n#Version: 1.7\r\n#Creator: Nout Geens & Karl Thijs\r\n<#Changelog\r\n    1.1: Added Variables instead of plain text code\r\n    1.2: Updated Naming\r\n    1.3: Made SURE checks\r\n    1.4: Added Brackets to make it work again\r\n    1.5: Made it loop\r\n    1.6: Changed the Write-hosts' to make it match\r\n\r\n#>\r\n\r\n#Declaration\r\n$CurrentUser = \"WMSuser\"\r\n$SQLServer = \"Server2.nout.local\" #use Server\\Instance for named SQL instances!\r\n$SQLDBName = \"production\"\r\n$SQLTable = \"Pallets\"\r\n$SQLTableBackup = \"palletsbackup\"\r\n\r\n#Get the Password\r\nWrite-host \"username:\"$CurrentUser\r\n$Password = Read-Host \"Password\" -AsSecureString\r\n\r\n#Connect to the SQL\r\n$SqlConnection = New-Object System.Data.SqlClient.SqlConnection\r\n$SqlConnection.ConnectionString = \"Server = $SQLServer; Database = $SQLDBName; User ID=$CurrentUser ; Password=$Password;Integrated Security=false\"\r\n$SqlConnection.open()\r\n\r\n#Create the Commandset\r\n$SqlCmd = New-Object System.Data.SqlClient.SqlCommand\r\n$SqlCmd.Connection = $SqlConnection\r\n$SqlCmd.CommandTimeout = 0\r\n\r\n#Initiate the loop\r\n$Continue = 1\r\nwhile($Continue -eq 1){\r\n\r\n    #Supply the pallet ID\r\n    $PalletID = Read-Host \"Geef het PalletID op\"\r\n    Write-Host -ForegroundColor Yellow \"Bent u zeker dat u pallet\"$PalletID \"wilt wissen? \"\r\n    $Sure = Read-Host \"(J/?N)\"\r\n\r\n\r\n    if($Sure -eq 'j' -or $Sure -eq 'J'){\r\n        #Copy\r\n        $CopyRow = \"INSERT INTO [$SQLDBName].[dbo].[$SQLTableBackup]\r\n                   ([PalletID]\r\n                   ,[Code],[Status],[GoodsTypeID],[GoodsSizeID],[LastLoc],[NextLoc],[EndLoc],[OrgLoc],[Blocked],[CraneMissionID],[Prio],[CreateDate],[ModifiedDate]\r\n                   ,[UserID],[ToRate],[ArticleID],[BatchId])\r\n            select [PalletID],[Code],[Status],[GoodsTypeID],[GoodsSizeID],[LastLoc],[NextLoc],[EndLoc],[OrgLoc],[Blocked],[CraneMissionID]\r\n                   ,[Prio],[CreateDate],[ModifiedDate],[UserID],[ToRate],[ArticleID],[BatchId]\r\n            from dbo.$SQLTable \r\n            where Code = '$PalletID'\"\r\n\r\n        $SqlCmd.CommandText = $CopyRow\r\n        $RowsCopied = $SqlCmd.ExecuteNonQuery()\r\n        #Notify the user\r\n        if($RowsCopied -eq 1){ Write-host -ForegroundColor Yellow \"Pallet $PalletID is Gebackuped\"}\r\n\r\n        $DeleteRow = \"Delete from dbo.$SQLTable where code = '$PalletID'\"\r\n\r\n        #If the copy went through\r\n        if($RowsCopied -gt 0){\r\n            $SqlCmd.CommandText = $DeleteRow\r\n            $RowsDeleted = $SqlCmd.ExecuteNonQuery()\r\n\r\n            #Notify the user\r\n            if($RowsCopied -eq 1){ Write-host -ForegroundColor RED \"Pallet $PalletID is verwijderd uit de Tabel.\"}\r\n\r\n         #if the copy did not succeed   \r\n         }else{ Write-Host -ForegroundColor Red \"Er is iets mis gegaan, Kloppen de gegevens?\"}\r\n    }\r\n    #Notify about the looping\r\n    Write-Host\r\n\r\n}\r\n",
+    "preview_line": "$CurrentUser = \"WMSuser\"",
+    "creator": "Nout Geens & Karl Thijs"
+  }
+];
+
+const COLORS = { amber:'#f0a531', teal:'#3fc6bd', coral:'#ef6f6c', cream:'#f4efe4', muted:'#8b96ad', line:'#2a3752', panel:'#1c2740' };
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.color = COLORS.muted;
+Chart.defaults.borderColor = COLORS.line;
+
+const embedded = SCRIPTS.filter(s => s.lang !== 'binary');
+const refFiles = SCRIPTS.filter(s => s.lang === 'binary');
+
+// ---- Header + stats ----
+document.getElementById('rangeLbl').textContent = `${embedded.length} scripts across ${new Set(embedded.map(s=>s.category)).size} categories`;
+const totalLoc = embedded.reduce((a,s)=>a+(s.loc||0),0);
+const creators = new Set(embedded.map(s=>s.creator).filter(Boolean));
+const langs = new Set(embedded.map(s=>s.lang));
+const statDefs = [
+  [embedded.length, '', 'Total scripts', true],
+  [new Set(embedded.map(s=>s.category)).size, '', 'Categories', false],
+  [totalLoc.toLocaleString(), '', 'Lines of code', false],
+  [langs.size, '', 'Languages', false],
+  [creators.size, '', 'Named authors', false],
+];
+const statsRow = document.getElementById('statsRow');
+statDefs.forEach(([num,unit,lbl,hi])=>{
+  const d = document.createElement('div');
+  d.className = 'stat'+(hi?' hi':'');
+  d.innerHTML = `<div class="num">${num}<small>${unit}</small></div><div class="lbl">${lbl}</div>`;
+  statsRow.appendChild(d);
+});
+document.getElementById('footerNote').textContent = `Script Vault · ${embedded.length} scripts, ${totalLoc.toLocaleString()} lines total`;
+
+// ---- Category chart ----
+const catCounts = {};
+embedded.forEach(s=>{ catCounts[s.category] = (catCounts[s.category]||0)+1; });
+const catLabels = Object.keys(catCounts).sort((a,b)=>catCounts[b]-catCounts[a]);
+new Chart(document.getElementById('catChart'), {
+  type:'bar',
+  data:{ labels:catLabels, datasets:[{ data:catLabels.map(c=>catCounts[c]), backgroundColor:COLORS.amber, borderRadius:6, maxBarThickness:34 }]},
+  options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{ x:{beginAtZero:true, grid:{color:COLORS.line}}, y:{grid:{display:false}} } }
+});
+
+// ---- Language chart ----
+const langCounts = {};
+embedded.forEach(s=>{ langCounts[s.lang] = (langCounts[s.lang]||0)+1; });
+const langLabels = Object.keys(langCounts);
+const langColorMap = { powershell:COLORS.teal, batch:COLORS.coral, csharp:COLORS.amber, text:COLORS.muted };
+new Chart(document.getElementById('langChart'), {
+  type:'doughnut',
+  data:{ labels:langLabels, datasets:[{ data:langLabels.map(l=>langCounts[l]), backgroundColor:langLabels.map(l=>langColorMap[l]||COLORS.muted), borderColor:COLORS.panel, borderWidth:3 }]},
+  options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:10,padding:12}} } }
+});
+
+// ---- Category chips ----
+let activeCategory = 'All';
+let searchTerm = '';
+const chipsEl = document.getElementById('categoryChips');
+function buildChips(){
+  chipsEl.innerHTML = '';
+  const all = document.createElement('div');
+  all.className = 'chip' + (activeCategory==='All' ? ' active':'');
+  all.innerHTML = `All <span class="n">${embedded.length}</span>`;
+  all.onclick = ()=>{ activeCategory='All'; renderGrid(); };
+  chipsEl.appendChild(all);
+  catLabels.forEach(cat=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (activeCategory===cat ? ' active':'');
+    c.innerHTML = `${cat} <span class="n">${catCounts[cat]}</span>`;
+    c.onclick = ()=>{ activeCategory=cat; renderGrid(); };
+    chipsEl.appendChild(c);
+  });
+}
+
+// ---- Grid rendering ----
+const libGrid = document.getElementById('libGrid');
+const noResults = document.getElementById('noResults');
+const resultMeta = document.getElementById('resultMeta');
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function matchesSearch(s, term){
+  if(!term) return true;
+  const hay = [s.title, s.description, s.preview_line, s.creator, s.filename, s.category, s.subpath].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(term);
+}
+
+function renderGrid(){
+  buildChips();
+  const term = searchTerm.trim().toLowerCase();
+  const filtered = embedded.filter(s => (activeCategory==='All' || s.category===activeCategory) && matchesSearch(s, term));
+
+  resultMeta.textContent = `Showing ${filtered.length} of ${embedded.length} scripts`;
+  libGrid.innerHTML = '';
+  noResults.style.display = filtered.length ? 'none' : 'block';
+
+  filtered.forEach(s=>{
+    const card = document.createElement('div');
+    card.className = 'script-card';
+    const pathBit = s.subpath ? `${s.category}/${s.subpath}` : s.category;
+    let descHtml;
+    if(s.description){
+      descHtml = `<div class="sc-desc">${escapeHtml(s.description)}</div>`;
+    } else if(s.preview_line){
+      descHtml = `<div class="sc-desc"><span class="code-preview">${escapeHtml(s.preview_line)}</span></div>`;
+    } else {
+      descHtml = `<div class="sc-desc empty-note">Empty or placeholder file</div>`;
+    }
+    card.innerHTML = `
+      <div class="sc-top">
+        <div>
+          <div class="sc-title">${escapeHtml(s.title)}</div>
+          <div class="sc-path">${escapeHtml(pathBit)}</div>
+        </div>
+        <span class="lang-badge lang-${s.lang}">${s.lang}</span>
+      </div>
+      ${descHtml}
+      <div class="sc-foot">
+        <span>${s.loc||0} lines</span>
+        <span class="creator">${s.creator ? escapeHtml(s.creator) : ''}</span>
+      </div>
+    `;
+    card.addEventListener('click', ()=>openModal(s));
+    libGrid.appendChild(card);
+  });
+}
+
+document.getElementById('searchInput').addEventListener('input', (e)=>{
+  searchTerm = e.target.value;
+  renderGrid();
+});
+
+// ---- Modal ----
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalTitle = document.getElementById('modalTitle');
+const modalMeta = document.getElementById('modalMeta');
+const modalCode = document.getElementById('modalCode');
+let currentScript = null;
+
+function highlight(code, lang){
+  let c = escapeHtml(code);
+  if(lang==='powershell'){
+    c = c.replace(/(#.*)$/gm, '<span class="cmt">$1</span>');
+    c = c.replace(/(&lt;#[\s\S]*?#&gt;)/gm, '<span class="cmt">$1</span>');
+    c = c.replace(/(&quot;[^&\n]*&quot;|&#39;[^&\n]*&#39;)/g, '<span class="str">$1</span>');
+    c = c.replace(/(\$[A-Za-z_][A-Za-z0-9_]*)/g, '<span class="var">$1</span>');
+    c = c.replace(/\b(function|param|if|else|elseif|foreach|while|return|import-module|try|catch|switch)\b/gi, '<span class="kw">$1</span>');
+  }
+  return c;
+}
+
+function openModal(s){
+  currentScript = s;
+  modalTitle.textContent = s.title;
+  const pathBit = s.subpath ? `${s.category}/${s.subpath}/${s.filename}` : `${s.category}/${s.filename}`;
+  modalMeta.textContent = `${pathBit} · ${s.loc||0} lines · ${s.lang}${s.creator? ' · '+s.creator : ''}`;
+  modalCode.innerHTML = s.content ? highlight(s.content, s.lang) : '(empty file)';
+  modalBackdrop.classList.add('open');
+}
+document.getElementById('closeModal').addEventListener('click', ()=> modalBackdrop.classList.remove('open'));
+modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop) modalBackdrop.classList.remove('open'); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') modalBackdrop.classList.remove('open'); });
+
+document.getElementById('copyBtn').addEventListener('click', ()=>{
+  if(!currentScript) return;
+  navigator.clipboard.writeText(currentScript.content||'').then(()=>{
+    const btn = document.getElementById('copyBtn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(()=>btn.textContent=orig, 1400);
+  });
+});
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  if(!currentScript) return;
+  const blob = new Blob([currentScript.content||''], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = currentScript.filename;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ---- Reference files ----
+if(refFiles.length){
+  document.getElementById('refSection').style.display = 'block';
+  const refGrid = document.getElementById('refGrid');
+  refFiles.forEach(r=>{
+    const pathBit = r.subpath ? `${r.category}/${r.subpath}/${r.filename}` : `${r.category}/${r.filename}`;
+    const sizeKb = Math.round(r.size/1024);
+    const div = document.createElement('div');
+    div.className = 'ref-card';
+    div.innerHTML = `
+      <div class="rc-title">${escapeHtml(r.title)}</div>
+      <div class="rc-meta">${escapeHtml(pathBit)} · ${sizeKb.toLocaleString()} KB</div>
+      <a href="${encodeURI(r.filename)}" target="_blank">↗ open ${escapeHtml(r.filename)}</a>
+    `;
+    refGrid.appendChild(div);
+  });
+}
+
+renderGrid();
+</script>
+</body>
+</html>

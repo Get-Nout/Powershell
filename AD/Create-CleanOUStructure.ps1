@@ -1,7 +1,13 @@
-﻿#Setup Clean Onsite AD
-#v1.2
-#Creator: Nout 
-#Note: Adding Folders shold be done both in $SubOus as in the Switch command
+﻿<#
+.SYNOPSIS
+    Builds a standard OU sub-structure under a given AD Organizational Unit.
+.DESCRIPTION
+    Creates a fixed set of sub-OUs (Computers, Global-Groups, Local-Groups, Data, Printing, App, Servers, TS, Service-Accounts, Users, Mailbox, Disabled) under a target OU, nesting some under others per a lookup table.
+.NOTES
+    Author: Nout Geens
+    Version: 1.2
+    When adding new sub-OUs, update both $SubOUs and the Switch block.
+#>
 
 #Declaration
     $OUName =""

@@ -1,11 +1,14 @@
-﻿######################################################### 
-# Name: Search-GPOsForString.ps1 
-# Author: Tony Murray 
-# Editor: Nout Geens (modified it to be more readable in larger AD structures)
-# Version: 1.2
-# Date: 25-06-2020
-# Comment: Simple search for GPOs within a domain that match a given string 
-#########################################################
+﻿<#
+.SYNOPSIS
+    Searches every GPO in a domain for a given string.
+.DESCRIPTION
+    Searches the XML report of each GPO (optionally limited to those matching a customer name prefix) for a given string and reports which GPOs matched and where.
+.NOTES
+    Original Author: Tony Murray
+    Editor: Nout Geens (modified to be more readable in larger AD structures)
+    Version: 1.2
+    Date: 2020-06-25
+#>
 
 #Imports
 Import-Module grouppolicy 

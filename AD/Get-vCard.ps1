@@ -1,8 +1,11 @@
-# Create a vCard to import on mobile devices
-# V2.0
-# Creator: Nout
-<# Info
-    Creates vCards from AD Users    
+<#
+.SYNOPSIS
+    Generates vCards (.vcf) for mobile import from an AD group.
+.DESCRIPTION
+    Reads every member of a given AD group and builds a vCard file per user from their AD attributes (name, title, address, mobile number, email).
+.NOTES
+    Author: Nout Geens
+    Version: 2.0
 #>
 
 #Importing modules

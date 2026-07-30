@@ -1,7 +1,13 @@
-﻿#Script to populate Ad Groups with the members of corresponding Default Groups
-# Members of "Printer1-Default" are added tot group "Printer1"
+﻿<#
+.SYNOPSIS
+    Syncs members from "-Default" AD groups into their corresponding base groups.
+.DESCRIPTION
+    Finds AD groups whose name matches a naming convention (e.g. "Nout-prt*_Default") and adds each enabled member into the matching base group (e.g. "Nout-prt1"). Used to keep resource/printer groups populated from a default membership group.
+.NOTES
+    Author: Nout Geens
+#>
 
-#Declaration 
+#Declaration
 $NameIndicator = "Nout-prt*"
 $DefaultIndicator = "*default"
 

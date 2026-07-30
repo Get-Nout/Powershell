@@ -1,14 +1,18 @@
-﻿#Original Creator: dmitrysotnikov
-#Editor: Nout Geens
-#Goal: Convert a CSV File exported from outlook to vcf files
-#Version: v2.0
-<#Usage
-    Go to outlook, Contacts > ctrl-a > Open / Open & Export > Export to file > Comma seperated Values > place csv in folder
-    Out-vCard -CSVFile "c:\temp\list.csv"  -OutPath "c:\temp\putthemhere\" -Delimiter ","
-
+﻿<#
+.SYNOPSIS
+    Converts an Outlook contacts CSV export into individual vCard (.vcf) files.
+.DESCRIPTION
+    Reads a CSV of Outlook contacts (Dutch column headers) and writes one .vcf file per contact.
+.NOTES
+    Original Author: dmitrysotnikov
+    Editor: Nout Geens
+    Version: 2.0
+.EXAMPLE
+    Go to Outlook, Contacts > Ctrl-A > Open / Open & Export > Export to file > Comma Separated Values > save the CSV
+    Out-vCard -CSVFile "c:\temp\list.csv" -OutPath "c:\temp\putthemhere\" -Delimiter ","
 #>
 
-#Info: Works only with the dutch version
+#Info: Works only with the Dutch version of Outlook's export
 
 
 

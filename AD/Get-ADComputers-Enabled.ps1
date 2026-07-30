@@ -1,4 +1,13 @@
-﻿#Get Every AD Computer
+﻿<#
+.SYNOPSIS
+    Reports AD computer accounts and flags stale ones.
+.DESCRIPTION
+    Retrieves every AD computer account, splits it into enabled/disabled, then highlights enabled computers that haven't logged on in the last month or the last year.
+.NOTES
+    Author: Nout Geens
+#>
+
+#Get Every AD Computer
     $Computers = Get-ADComputer -filter * -Properties Created,LastBadPasswordAttempt,LastLogonDate,Modified,OperatingSystem | `
                  Select-Object Name,SamAccountName,Enabled,OperatingSystem,Created,Modified,LastLogonDate,LastBadPasswordAttempt,SID,ObjectGUID,DistinguishedName
 

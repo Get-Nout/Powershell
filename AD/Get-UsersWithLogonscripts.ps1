@@ -1,6 +1,12 @@
-﻿# Get Every user with a logon script - Based AD Group
-# V1.1
-# Creator: Nout Geens
+﻿<#
+.SYNOPSIS
+    Counts AD users in a group that have a logon script configured.
+.DESCRIPTION
+    Checks every member of a given AD group for a configured logon script path and reports how many enabled vs. disabled users have one set.
+.NOTES
+    Author: Nout Geens
+    Version: 1.1
+#>
 
 #Declaration
 $Groupname ="Domain Users"

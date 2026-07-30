@@ -1,11 +1,16 @@
-﻿#Create AD Groups based on a file structure
-#Version 1.3
-#Creators: Nout Geens
-<#Changelog
-    V1.1 Cleaned up Code
-    V1.2 Changed Var names
-    V1.3 Added FC groups
-    V1.4 Added NTFS Additions
+﻿<#
+.SYNOPSIS
+    Generates Full Control / Read-Write / Read-Only AD groups per subfolder and applies them as NTFS permissions.
+.DESCRIPTION
+    Walks a folder tree and, for each folder found, creates matching "-FC", "-RW" and "-RO" AD security groups (if they don't already exist) and grants each group the corresponding NTFS rights on that folder.
+.NOTES
+    Author: Nout Geens
+    Version: 1.3
+    Changelog:
+        1.1 Cleaned up code
+        1.2 Changed variable names
+        1.3 Added FC groups
+        1.4 Added NTFS additions
 #>
 #Imports
 Import-Module activeDirectory

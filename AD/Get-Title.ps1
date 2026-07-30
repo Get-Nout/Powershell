@@ -1,6 +1,12 @@
-﻿#List all titels Based AD Group
-# v1.1
-# Creator: Nout
+﻿<#
+.SYNOPSIS
+    Lists the distinct job titles used within an AD group.
+.DESCRIPTION
+    Retrieves every member of a given AD group and returns the unique set of "title" attribute values.
+.NOTES
+    Author: Nout Geens
+    Version: 1.1
+#>
 
 #Importing modules
 Import-Module ActiveDirectory

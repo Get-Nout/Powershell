@@ -1,4 +1,13 @@
-﻿#Declaration
+﻿<#
+.SYNOPSIS
+    Reports on Sharepoint-style data access group membership and rights.
+.DESCRIPTION
+    Finds AD groups matching a naming filter, tags each with its access level (Read Write / Full Control / Read Only) and target folder derived from the group name, then exports the group, folder, access level and member list to CSV.
+.NOTES
+    Author: Nout Geens
+#>
+
+#Declaration
 $GroupNameFilter = "users-sharepoint-*"
 $CSVPath = "C:\temp\Sharepoint Users.csv"
 

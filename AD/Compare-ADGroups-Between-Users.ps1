@@ -1,6 +1,12 @@
-﻿#Compare ad groups between two users
-#v1.1
-#Creator: Nout Geens
+﻿<#
+.SYNOPSIS
+    Compares AD group membership between two users.
+.DESCRIPTION
+    Retrieves the AD groups for two specified users and reports which groups each user has that the other doesn't.
+.NOTES
+    Author: Nout Geens
+    Version: 1.1
+#>
 
 #Imports
 Import-Module ActiveDirectory

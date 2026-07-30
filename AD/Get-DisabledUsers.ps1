@@ -1,6 +1,13 @@
-﻿#List all the disabled users in ad, and check if they have mailboxes.
-#v3.1
-#Creator: Nout Geens
+﻿<#
+.SYNOPSIS
+    Lists disabled AD users and checks whether they still have a mailbox.
+.DESCRIPTION
+    Connects to Exchange, finds every disabled AD user, and reports whether each has no mailbox, a shared mailbox, or a regular mailbox, plus a breakdown by company.
+.NOTES
+    Author: Nout Geens
+    Version: 3.1
+    Requires an Exchange PowerShell session (connection details are set inside the script).
+#>
 
 #Imports
 Import-Module ActiveDirectory

@@ -1,5 +1,10 @@
-<#Info
-    Repairs the trust between two computer objects
+<#
+.SYNOPSIS
+    Tests and repairs the secure channel trust between a computer and the domain.
+.DESCRIPTION
+    Checks Test-ComputerSecureChannel and, if it fails, repairs it using a designated repair account against the local DC. Behavior branches by detected OS version.
+.NOTES
+    Author: Nout Geens
 #>
 #Declaration
 $DomainName = "nout.local"

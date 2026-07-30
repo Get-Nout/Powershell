@@ -1,8 +1,11 @@
-﻿#Script to report the current GPO's in your domain
-#Creator: Nout Geens
-#Version: 1.0
-<#Changelog
-    1.0    Created
+﻿<#
+.SYNOPSIS
+    Reports on GPO scope and coverage across a domain.
+.DESCRIPTION
+    Retrieves every GPO in the domain and reports which are fully disabled, how many users/computers/groups each applies to, and which have empty User or Computer settings despite those settings being enabled.
+.NOTES
+    Author: Nout Geens
+    Version: 1.0
 #>
 
 #Imports
