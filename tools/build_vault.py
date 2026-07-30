@@ -18,7 +18,7 @@ VAULT_HTML = REPO_ROOT / "script_vault.html"
 
 # Top-level folders that hold scripts. Anything else at repo root
 # (LICENSE, README, tools/, .git/) is ignored.
-CATEGORY_DIRS = ["AD", "Commandlets", "Hyper-V", "Maintenance", "Reporting", "SQL"]
+CATEGORY_DIRS = ["AD", "Commandlets", "Hyper-V", "Maintenance", "NTFS", "Reporting", "SQL"]
 
 LANG_BY_EXT = {
     ".ps1": "powershell",
@@ -157,6 +157,8 @@ def main():
         for path in sorted(cat_dir.rglob("*")):
             if path.is_dir():
                 continue
+            if path.suffix.lower() not in LANG_BY_EXT:
+                continue  # skip non-script files, e.g. generated demo HTML
             scripts.append(build_entry(path, cat))
 
     scripts.sort(key=lambda s: (s["category"], s["title"]))
@@ -167,8 +169,14 @@ def main():
     # which would otherwise close the surrounding <script> tag early.
     js_array = js_array.replace("</script", "<\\/script")
     replacement = "const SCRIPTS = " + js_array + ";"
+    # A non-greedy "\[.*?\];" would stop at the first "];" it finds - and a
+    # large embedded script (e.g. one containing a JS array literal in its
+    # own source) can easily contain that substring, truncating the file.
+    # Match greedily instead, anchored on the static line that always
+    # immediately follows the SCRIPTS block in the template, so only the
+    # true end of the block can satisfy the pattern.
     new_html, n = re.subn(
-        r"const SCRIPTS = \[.*?\];",
+        r"const SCRIPTS = \[.*\];(?=\s*\r?\n\r?\nconst COLORS)",
         lambda _m: replacement,
         html,
         count=1,

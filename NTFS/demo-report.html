@@ -1,0 +1,598 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NTFS Permission Explorer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --ink: #111826;
+  --panel: #161f30;
+  --panel-2: #1c2740;
+  --line: #2a3752;
+  --amber: #f0a531;
+  --amber-soft: #f0a53133;
+  --teal: #3fc6bd;
+  --teal-soft: #3fc6bd2b;
+  --coral: #ef6f6c;
+  --coral-soft: #ef6f6c2b;
+  --cream: #f4efe4;
+  --muted: #8b96ad;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 10% 0%, #1b2438 0%, var(--ink) 45%);
+  color: var(--cream);
+  font-family: 'Inter', "Segoe UI", Arial, sans-serif;
+}
+
+.app-header {
+  padding: 28px 28px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.app-header .eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--amber);
+  margin-bottom: 8px;
+}
+
+.app-header h1 {
+  margin: 0 0 8px 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cream);
+}
+
+.app-header h1 span { color: var(--muted); font-weight: 500; }
+
+.app-header .meta {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 14px 22px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.toolbar button {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+
+.toolbar button:hover { border-color: var(--amber); color: var(--cream); }
+.toolbar button.active { background: var(--amber); color: #1a1200; border-color: var(--amber); font-weight: 600; }
+
+#searchBox {
+  min-width: 320px;
+  flex: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+}
+
+#searchBox:focus { outline: none; border-color: var(--amber); }
+#searchBox::placeholder { color: var(--muted); }
+
+.report-shell { padding: 22px; }
+
+.explorer-panel {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.tree-list {
+  list-style: none;
+  margin: 0;
+  padding-left: 22px;
+  border-left: 1px dotted var(--line);
+}
+
+.explorer-panel > .tree-list {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.tree-node { margin: 2px 0; }
+
+.node-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  color: var(--cream);
+}
+
+.node-row:hover { background: var(--amber-soft); }
+
+.toggle {
+  width: 16px;
+  display: inline-block;
+  color: var(--muted);
+  font-size: 11px;
+  transition: transform .12s ease;
+}
+
+.toggle.empty { visibility: hidden; }
+.node-row.open .toggle { transform: rotate(90deg); color: var(--amber); }
+.icon { width: 22px; }
+.node-name { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+
+.node-path {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  font-size: 11.5px;
+  margin-left: 8px;
+}
+
+.node-children {
+  margin-left: 20px;
+  padding-left: 8px;
+}
+
+.collapsed { display: none; }
+
+.permission-table {
+  width: calc(100% - 18px);
+  margin: 8px 0 12px 18px;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: var(--panel);
+}
+
+.permission-table th,
+.permission-table td {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+  color: var(--cream);
+}
+
+.permission-table th {
+  background: var(--panel-2);
+  color: var(--amber);
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-size: 10.5px;
+  font-weight: 600;
+  position: sticky;
+  top: 58px;
+}
+
+.identity { font-family: 'IBM Plex Mono', monospace; color: var(--cream); }
+.error { color: var(--coral); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-weight: 650;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+
+.badge.allow { background: var(--teal-soft); color: var(--teal); }
+.badge.deny { background: var(--coral-soft); color: var(--coral); }
+.hidden-by-search { display: none; }
+
+body.modified-only .tree-node.inherited-only:not(.has-explicit-descendant) {
+  display: none;
+}
+
+body.modified-only .permission-table tbody tr.inherited-permission {
+  display: none;
+}
+
+body.modified-only .permission-table:has(tbody tr.explicit-permission) tbody tr.explicit-permission {
+  display: table-row;
+}
+
+.member-cell {
+  min-width: 220px;
+}
+
+.member-details {
+  display: none;
+}
+
+body.show-members .member-details {
+  display: block;
+}
+
+.member-details summary {
+  cursor: pointer;
+  color: var(--amber);
+  font-weight: 650;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+}
+
+.member-list {
+  margin: 6px 0 0 0;
+  padding-left: 16px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.member-list li {
+  margin: 3px 0;
+  line-height: 1.35;
+  color: var(--cream);
+}
+
+.member-name {
+  font-weight: 600;
+}
+
+.member-meta {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.member-indent {
+  white-space: pre;
+  font-family: 'IBM Plex Mono', monospace;
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="eyebrow">&#9679; NTFS Permissions &mdash; Read Only</div>
+  <h1>Permission <span>Explorer</span></h1>
+  <div class="meta">Root: D:\Shares &nbsp; | &nbsp; Generated: 2026-07-30 17:04:49 &nbsp; | &nbsp; Include inherited: False &nbsp; | &nbsp; Nested groups: True</div>
+</header>
+
+<div class="toolbar">
+  <button id="expandAllButton" type="button">Expand all</button>
+  <button id="collapseAllButton" type="button">Collapse all</button>
+  <button id="showMembersButton" type="button">Show AD members</button>
+  <button id="modifiedOnlyButton" type="button">Show modified only</button>
+  <input id="searchBox" type="search" placeholder="Search folders, identities, rights, AD names...">
+</div>
+
+<main class="report-shell">
+  <section class="explorer-panel">
+    <ul class="tree-list">
+      <li class='tree-node has-explicit'>
+  <div class='node-row open' data-target='node-0'>
+    <span class='toggle'>&#9654;</span>
+    <span class='icon'>&#128193;</span>
+    <span class='node-name'>D:\Shares</span>
+    <span class='node-path'>D:\Shares</span>
+  </div>
+  <div id='node-0' class='node-children'>
+    <table class='permission-table'>
+      <thead><tr><th>Identity</th><th>Rights</th><th>Type</th><th>Inherited</th><th>AD Object</th><th>Display Name</th><th>AD Group Members</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr class='explicit-permission'>
+          <td class='identity'>Everyone</td>
+          <td>ReadAndExecute, Synchronize</td>
+          <td><span class='badge allow'>Allow</span></td>
+          <td>False</td>
+          <td>Unknown</td>
+          <td></td>
+          <td class='member-cell'></td>
+          <td class='error'></td>
+        </tr>
+        <tr class='explicit-permission'>
+          <td class='identity'>BUILTIN\Administrators</td>
+          <td>FullControl</td>
+          <td><span class='badge allow'>Allow</span></td>
+          <td>False</td>
+          <td>BuiltInOrLocal</td>
+          <td></td>
+          <td class='member-cell'></td>
+          <td class='error'></td>
+        </tr>
+      </tbody>
+    </table>
+    <ul class='tree-list'>
+<li class='tree-node has-explicit'>
+  <div class='node-row' data-target='node-1'>
+    <span class='toggle'>&#9654;</span>
+    <span class='icon'>&#128193;</span>
+    <span class='node-name'>Finance</span>
+    <span class='node-path'>D:\Shares\Finance</span>
+  </div>
+  <div id='node-1' class='node-children collapsed'>
+    <table class='permission-table'>
+      <thead><tr><th>Identity</th><th>Rights</th><th>Type</th><th>Inherited</th><th>AD Object</th><th>Display Name</th><th>AD Group Members</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr class='explicit-permission'>
+          <td class='identity'>CONTOSO\Finance-Team</td>
+          <td>Modify, Synchronize</td>
+          <td><span class='badge allow'>Allow</span></td>
+          <td>False</td>
+          <td>group</td>
+          <td></td>
+          <td class='member-cell'><details class='member-details'><summary>4 member(s)</summary><ul class='member-list'><li><span class='member-indent'></span><span class='member-name'>Alice Nguyen</span> <span class='member-meta'>[user] alice.nguyen</span></li><li><span class='member-indent'></span><span class='member-name'>Ben Carter</span> <span class='member-meta'>[user] ben.carter</span></li><li><span class='member-indent'></span><span class='member-name'>Payroll-Team</span> <span class='member-meta'>[group] Payroll-Team</span></li><li><span class='member-indent'>  </span>&#8627; <span class='member-name'>Dana Whitfield</span> <span class='member-meta'>[user] dana.whitfield</span></li></ul></details></td>
+          <td class='error'></td>
+        </tr>
+        <tr class='explicit-permission'>
+          <td class='identity'>CONTOSO\Contractors</td>
+          <td>Modify, Synchronize</td>
+          <td><span class='badge deny'>Deny</span></td>
+          <td>False</td>
+          <td>group</td>
+          <td></td>
+          <td class='member-cell'></td>
+          <td class='error'></td>
+        </tr>
+      </tbody>
+    </table>
+    <ul class='tree-list'>
+<li class='tree-node inherited-only'>
+  <div class='node-row' data-target='node-2'>
+    <span class='toggle'>&#9654;</span>
+    <span class='icon'>&#128196;</span>
+    <span class='node-name'>Budgets2026.xlsx</span>
+    <span class='node-path'>D:\Shares\Finance\Budgets2026.xlsx</span>
+  </div>
+  <div id='node-2' class='node-children collapsed'>
+    <table class='permission-table'>
+      <thead><tr><th>Identity</th><th>Rights</th><th>Type</th><th>Inherited</th><th>AD Object</th><th>Display Name</th><th>AD Group Members</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr class='inherited-permission'>
+          <td class='identity'>CONTOSO\Finance-Team</td>
+          <td>Modify, Synchronize</td>
+          <td><span class='badge allow'>Allow</span></td>
+          <td>True</td>
+          <td>group</td>
+          <td></td>
+          <td class='member-cell'></td>
+          <td class='error'></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</li>
+<li class='tree-node has-explicit'>
+  <div class='node-row' data-target='node-3'>
+    <span class='toggle'>&#9654;</span>
+    <span class='icon'>&#128194;</span>
+    <span class='node-name'>Payroll</span>
+    <span class='node-path'>D:\Shares\Finance\Payroll</span>
+  </div>
+  <div id='node-3' class='node-children collapsed'>
+    <table class='permission-table'>
+      <thead><tr><th>Identity</th><th>Rights</th><th>Type</th><th>Inherited</th><th>AD Object</th><th>Display Name</th><th>AD Group Members</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr class='explicit-permission'>
+          <td class='identity'>CONTOSO\Payroll-Team</td>
+          <td>FullControl</td>
+          <td><span class='badge allow'>Allow</span></td>
+          <td>False</td>
+          <td>group</td>
+          <td></td>
+          <td class='member-cell'></td>
+          <td class='error'></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</li>
+    </ul>
+  </div>
+</li>
+<li class='tree-node has-explicit'>
+  <div class='node-row' data-target='node-4'>
+    <span class='toggle'>&#9654;</span>
+    <span class='icon'>&#128193;</span>
+    <span class='node-name'>HR</span>
+    <span class='node-path'>D:\Shares\HR</span>
+  </div>
+  <div id='node-4' class='node-children collapsed'>
+    <table class='permission-table'>
+      <thead><tr><th>Identity</th><th>Rights</th><th>Type</th><th>Inherited</th><th>AD Object</th><th>Display Name</th><th>AD Group Members</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr class='explicit-permission'>
+          <td class='identity'>CONTOSO\HR-Team</td>
+          <td>ReadAndExecute, Synchronize</td>
+          <td><span class='badge allow'>Allow</span></td>
+          <td>False</td>
+          <td>group</td>
+          <td></td>
+          <td class='member-cell'><details class='member-details'><summary>2 member(s)</summary><ul class='member-list'><li><span class='member-indent'></span><span class='member-name'>Priya Shah</span> <span class='member-meta'>[user] priya.shah</span></li><li><span class='member-indent'></span><span class='member-name'>Marco Bianchi</span> <span class='member-meta'>[user] marco.bianchi</span></li></ul></details></td>
+          <td class='error'></td>
+        </tr>
+      </tbody>
+    </table>
+    <ul class='tree-list'>
+<li class='tree-node inherited-only'>
+  <div class='node-row' data-target='node-5'>
+    <span class='toggle empty'>&#9654;</span>
+    <span class='icon'>&#128194;</span>
+    <span class='node-name'>Archive</span>
+    <span class='node-path'>D:\Shares\HR\Archive</span>
+  </div>
+  <div id='node-5' class='node-children collapsed'>
+  </div>
+</li>
+    </ul>
+  </div>
+</li>
+<li class='tree-node has-explicit'>
+  <div class='node-row' data-target='node-6'>
+    <span class='toggle'>&#9654;</span>
+    <span class='icon'>&#128194;</span>
+    <span class='node-name'>IT</span>
+    <span class='node-path'>D:\Shares\IT</span>
+  </div>
+  <div id='node-6' class='node-children collapsed'>
+    <table class='permission-table'>
+      <thead><tr><th>Identity</th><th>Rights</th><th>Type</th><th>Inherited</th><th>AD Object</th><th>Display Name</th><th>AD Group Members</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr class='explicit-permission'>
+          <td class='identity'>CONTOSO\IT-Team</td>
+          <td>FullControl</td>
+          <td><span class='badge allow'>Allow</span></td>
+          <td>False</td>
+          <td>group</td>
+          <td></td>
+          <td class='member-cell'><details class='member-details'><summary>2 member(s)</summary><ul class='member-list'><li><span class='member-indent'></span><span class='member-name'>Sofia Martins</span> <span class='member-meta'>[user] sofia.martins</span></li><li><span class='member-indent'></span><span class='member-name'>WKS-BUILD01</span> <span class='member-meta'>[computer] WKS-BUILD01$</span></li></ul></details></td>
+          <td class='error'></td>
+        </tr>
+        <tr class='explicit-permission'>
+          <td class='identity'>CONTOSO\svc-backup</td>
+          <td>ReadAndExecute, Synchronize</td>
+          <td><span class='badge allow'>Allow</span></td>
+          <td>False</td>
+          <td>user</td>
+          <td></td>
+          <td class='member-cell'></td>
+          <td class='error'></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</li>
+<li class='tree-node inherited-only'>
+  <div class='node-row' data-target='node-7'>
+    <span class='toggle empty'>&#9654;</span>
+    <span class='icon'>&#128194;</span>
+    <span class='node-name'>Public</span>
+    <span class='node-path'>D:\Shares\Public</span>
+  </div>
+  <div id='node-7' class='node-children collapsed'>
+  </div>
+</li>
+    </ul>
+  </div>
+</li>
+
+    </ul>
+  </section>
+</main>
+
+<script>
+function toggleNodeByRow(row) {
+  const id = row.getAttribute('data-target');
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('collapsed');
+  row.classList.toggle('open', !el.classList.contains('collapsed'));
+}
+
+document.addEventListener('click', function(event) {
+  const row = event.target.closest('.node-row');
+  if (!row) return;
+  toggleNodeByRow(row);
+});
+
+function expandAll() {
+  document.querySelectorAll('.node-children').forEach(el => el.classList.remove('collapsed'));
+  document.querySelectorAll('.node-row').forEach(el => el.classList.add('open'));
+}
+
+function collapseAll() {
+  document.querySelectorAll('.node-children').forEach(el => el.classList.add('collapsed'));
+  document.querySelectorAll('.node-row').forEach(el => el.classList.remove('open'));
+}
+
+function filterTree(query) {
+  const q = query.toLowerCase().trim();
+  const nodes = [...document.querySelectorAll('.tree-node')];
+
+  if (!q) {
+    nodes.forEach(n => n.classList.remove('hidden-by-search'));
+    collapseAll();
+    const first = document.querySelector('.node-row');
+    if (first) toggleNodeByRow(first);
+    return;
+  }
+
+  nodes.forEach(n => n.classList.add('hidden-by-search'));
+
+  nodes.forEach(node => {
+    const text = node.innerText.toLowerCase();
+
+    if (text.includes(q)) {
+      let current = node;
+
+      while (current && current.classList) {
+        if (current.classList.contains('tree-node')) {
+          current.classList.remove('hidden-by-search');
+          const childContainer = current.querySelector(':scope > .node-children');
+          const row = current.querySelector(':scope > .node-row');
+          if (childContainer) childContainer.classList.remove('collapsed');
+          if (row) row.classList.add('open');
+        }
+
+        current = current.parentElement ? current.parentElement.closest('.tree-node') : null;
+      }
+    }
+  });
+}
+
+document.getElementById('expandAllButton').addEventListener('click', expandAll);
+document.getElementById('collapseAllButton').addEventListener('click', collapseAll);
+document.getElementById('showMembersButton').addEventListener('click', function () {
+  document.body.classList.toggle('show-members');
+  const isOn = document.body.classList.contains('show-members');
+  this.textContent = isOn ? 'Hide AD members' : 'Show AD members';
+  this.classList.toggle('active', isOn);
+});
+
+document.getElementById('modifiedOnlyButton').addEventListener('click', function () {
+  document.body.classList.toggle('modified-only');
+  const isOn = document.body.classList.contains('modified-only');
+  this.textContent = isOn ? 'Show all folders' : 'Show modified only';
+  this.classList.toggle('active', isOn);
+  if (isOn) {
+    expandAll();
+  }
+});
+
+document.querySelectorAll('.tree-node.has-explicit').forEach(function(node) {
+  let parent = node.parentElement ? node.parentElement.closest('.tree-node') : null;
+  while (parent) {
+    parent.classList.add('has-explicit-descendant');
+    parent = parent.parentElement ? parent.parentElement.closest('.tree-node') : null;
+  }
+});
+
+document.getElementById('searchBox').addEventListener('input', function () {
+  filterTree(this.value);
+});
+</script>
+</body>
+</html>
