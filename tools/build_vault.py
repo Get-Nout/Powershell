@@ -54,7 +54,7 @@ def strip_bom(text):
 
 def parse_help_block(content):
     """Return (synopsis, description, creator) from formal comment-based help, if present."""
-    m = HELP_BLOCK_RE.search(content[:4000])
+    m = HELP_BLOCK_RE.search(content)
     if not m:
         return None, None, None
     block = m.group(1)
@@ -83,7 +83,7 @@ def parse_help_block(content):
 
 
 def parse_loose_creator(content):
-    m = LOOSE_CREATOR_RE.search(content[:1500])
+    m = LOOSE_CREATOR_RE.search(content)
     if not m:
         return None
     val = clean(m.group(1))

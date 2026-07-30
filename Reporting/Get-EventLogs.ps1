@@ -1,6 +1,6 @@
 ﻿#Get Event logs since Yesterday
 #v0.5
-#Creator:Nout
+#Creator: Nout Geens
 
 #Declaration
 $Servers = "SRV01"
