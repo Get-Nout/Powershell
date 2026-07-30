@@ -1,7 +1,7 @@
 ﻿#Set wallpaper
 #declaration
-    $Server = "RDSNOUT003"
-    $Username = "Hank"
+    $Server = "RDS01"
+    $Username = "jsmith"
     $FilePath = 'C:\windows\Wallpaper.png'
 
     $Testrun = $true #set to false to run it for real

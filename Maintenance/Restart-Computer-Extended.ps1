@@ -18,7 +18,7 @@
     #>
     <#Notes
         When running this from a clean powershell or task schedule use this format
-        . P:\Maintanance\Restart-Computer-Extended.ps1
+        . P:\Scripts\Maintenance\Restart-Computer-Extended.ps1
         Restart-Computer-Extended -Servers SRV001, SRV002, SRV003 -WaitTime 10 -TimeBetween 8
 
         Active directory RSAT tools are required on the server, you can install these as admin:
@@ -47,11 +47,11 @@
         [String[]]$Servers,
         [Int]$WaitTime = 10, # Mins the users get to log off
         [Int]$TimeBetween = 5, # Mins between server & the check if they are booted ok
-        [String]$Mailserver = "mailout.ithost.be",
+        [String]$Mailserver = "mail.contoso.local",
         [Int]$Port = 25,
-        [String]$Recipient = "Monitoring@ithost.be",
-        [String]$Sender = "Reboot@ithost.be",
-        [String]$LogfilePath = "\\Ithost.local\ithost$\techdata\Scripts\Maintenance\Logs\"
+        [String]$Recipient = "monitoring@contoso.local",
+        [String]$Sender = "reboot@contoso.local",
+        [String]$LogfilePath = "\\fileserver.contoso.local\scripts$\Maintenance\Logs\"
         )
 
     #Import

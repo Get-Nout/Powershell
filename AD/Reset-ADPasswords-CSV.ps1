@@ -8,7 +8,7 @@
     Version: 1.0
 .EXAMPLE
     CSV format: Name, Type, Password
-    "Nout Geens", "User", "SeCuére"
+    "Jane Smith", "User", "<Password>"
 #>
 
 Import-Module ActiveDirectory

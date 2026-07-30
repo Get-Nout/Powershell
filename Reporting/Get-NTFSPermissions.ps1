@@ -12,4 +12,4 @@
 		@{Label="Propagation Flags";Expression={$_.PropagationFlags}} | ft -auto
 		}
 
-#Example:  Get-NTFSPermissions -Object "\\Nout.local\Data$\Production\Stage1\DWG*"
+#Example:  Get-NTFSPermissions -Object "\\fileserver.contoso.local\Data$\Production\Stage1\DWG*"

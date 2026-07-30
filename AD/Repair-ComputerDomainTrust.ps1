@@ -7,10 +7,9 @@
     Author: Nout Geens
 #>
 #Declaration
-$DomainName = "nout.local"
-$LocalDC ="SRVNOUT101"
+$DomainName = "contoso.local"
+$LocalDC ="DC01"
 $RepairAccountName = "TempAdmin"
-$RepairAccountPWD = "SüperSecure123"
 
 #Create the computer object
 $Computer = New-Object -TypeName PSCustomObject -ArgumentList @{Name = $env:COMPUTERNAME}
@@ -19,11 +18,8 @@ $Computer | Add-Member -NotePropertyName OS -NotePropertyValue (Get-CimInstance 
 #Do different things depending on the OS
 Switch($Computer.OS){
     "*Windows 10*"{
-        #Creating the Secure credentials
-        #Convert the Pwd to secure string
-        [SecureString]$RepairAccountPWDSecure = ConvertTo-SecureString $RepairAccountPWD -AsPlainText -Force
-        #Create the Cred Object
-        [pscredential]$CredObject = New-Object System.Management.Automation.PSCredential ($RepairAccountName, $RepairAccountPWDSecure)
+        #Prompt for the repair account's credentials (not stored in the script)
+        [pscredential]$CredObject = Get-Credential -UserName $RepairAccountName -Message "Credentials for the domain repair account"
 
         #Test the connection, if false, run the repair
         

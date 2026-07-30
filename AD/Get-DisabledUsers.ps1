@@ -15,7 +15,7 @@ Import-Module ActiveDirectory
 #region Connect to Exchange (needed to get the shared mailboxes)
 #Declaratie
 	$server = "Exchange Server"
-    $domain = "nout.local"
+    $domain = "contoso.local"
 #Connectie
 	$serveruri = "http://" + $server + "." + $domain +"/powershell/" #FQDN
 	$exchangeSession = New-PSSession `

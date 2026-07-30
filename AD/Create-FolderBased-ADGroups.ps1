@@ -17,8 +17,8 @@ Import-Module activeDirectory
 
 #Declaration
 $Pre = "Cust-Share-"
-$ParentFolder = "P:\DUMP\NTFSTest"
-$OUPath = "OU=_temp-users,DC=nout,DC=LOCAL"
+$ParentFolder = "P:\Shares\ExampleFolder"
+$OUPath = "OU=_temp-users,DC=contoso,DC=LOCAL"
 $Depth = 2
 
 #Get the folders

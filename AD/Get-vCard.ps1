@@ -12,9 +12,9 @@
     Import-Module ActiveDirectory
 
 #Declaration
-    $Group = "users-noutcorp"
-    $Company = "noutcorp"
-    $Website = "https://www.nootnoot.be"
+    $Group = "users-contoso"
+    $Company = "Contoso"
+    $Website = "https://www.example.com"
     $vCardPath = "C:\temp\vCards" 
 
 #Get The users

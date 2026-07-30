@@ -9,8 +9,8 @@
 #>
 
 #Declaration
-    $GroupLocation = "OU=Printing,OU=Local-Groups,DC=nout,DC=local"
-    $Groups = Get-ADGroup -SearchBase $GroupLocation -Filter {name -like "nout-PRT-*"}
+    $GroupLocation = "OU=Printing,OU=Local-Groups,DC=contoso,DC=local"
+    $Groups = Get-ADGroup -SearchBase $GroupLocation -Filter {name -like "contoso-PRT-*"}
 
 #Loop it
 foreach($Group in $Groups){

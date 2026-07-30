@@ -12,8 +12,8 @@
 #>
 
 #Declaration
-$CurrentUser = "WMSuser"
-$SQLServer = "Server2.nout.local" #use Server\Instance for named SQL instances!
+$CurrentUser = "SQLServiceUser"
+$SQLServer = "Server2.contoso.local" #use Server\Instance for named SQL instances!
 $SQLDBName = "production"
 $SQLTable = "Pallets"
 $SQLTableBackup = "palletsbackup"

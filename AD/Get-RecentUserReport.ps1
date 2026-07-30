@@ -7,10 +7,10 @@
     Author: Nout Geens
 #>
 
-$ADGroup = "Users-nout-CXA"
+$ADGroup = "Users-Contoso-CXA"
 $LatestLogonMonths = 3 #months
 $ExportLocation = "c:\temp\"
-$CustomerName = "nout"
+$CustomerName = "Contoso"
 
 #Get the users
 $Users = Get-ADGroupMember $ADGroup -Recursive | Select-Object SamAccountName -ExpandProperty SamAccountName
